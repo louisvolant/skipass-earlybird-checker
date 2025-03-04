@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getLastChecks, forceCheck } from "@/lib/api";
-import { useTheme } from './ThemeProvider';
 
 interface Check {
   id: number;
