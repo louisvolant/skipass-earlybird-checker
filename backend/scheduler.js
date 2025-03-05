@@ -14,12 +14,20 @@ const TABLE_CHECKER_CONTENT = "checker_content";
 
 // Export this function so it can be used elsewhere
 async function checkSkiPassStation() {
+
+  const custom_headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36', // Custom User-Agent
+      'Referer': url,
+      'Cookie': '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a; __stripe_mid=bfd1450a-ce8d-4662-8628-af786988fdaf; __stripe_sid=8ce2e24f-06b6-486c-ab38-4edd88c17e44',
+  };
+
     try {
         const response = await axios.get(searchUrl, {
             params: {
                 partner_date: dateToCheck,
                 start_date: dateToCheck
-            }
+            },
+            headers: custom_headers
         });
 
         const $ = cheerio.load(response.data);
