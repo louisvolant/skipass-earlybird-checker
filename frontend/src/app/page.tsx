@@ -24,6 +24,7 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Check; direction: 'asc' | 'desc' } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
+  const [expandedUrls, setExpandedUrls] = useState<{ [key: number]: boolean }>({});
   const checksPerPage = 10;
 
   const fetchChecks = async () => {
@@ -64,6 +65,10 @@ export default function Home() {
     setSortConfig({ key, direction });
   };
 
+  const toggleUrlExpand = (id: number) => {
+    setExpandedUrls(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+  ``
   // Apply sorting
   const sortedChecks = [...checks].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -226,7 +231,15 @@ const handleViewContent = async (checkId: number) => {
                     <tr className="hover">
                       <td>{new Date(check.timestamp).toLocaleString()}</td>
                       <td>{check.httpCode}</td>
-                      <td>{check.url}</td>
+                      <td className="flex items-center">
+                        <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-32'}`}>{check.url}</span>
+                        <button
+                          className="ml-2 btn btn-xs btn-outline"
+                          onClick={() => toggleUrlExpand(check.id)}
+                        >
+                          {expandedUrls[check.id] ? '-' : '+'}
+                        </button>
+                      </td>
                       <td>{check.targetDate}</td>
                       <td>{check.price || '-'}</td>
                       <td>
