@@ -18,6 +18,17 @@ export async function getLastChecks() {
   }
 }
 
+export async function getCheckContent(checkId: number) {
+  try {
+    const response = await fetch(`/api/get-content?check_id=${checkId}`);
+    const data = await response.json();
+    return data.content;
+  } catch (error) {
+    console.error('Error fetching check content:', error);
+    throw error;
+  }
+}
+
 export async function forceCheck() {
   try {
     const response = await api.post('/api/force-check');

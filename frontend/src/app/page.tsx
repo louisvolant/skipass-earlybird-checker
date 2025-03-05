@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getLastChecks, forceCheck } from "@/lib/api";
+import { getLastChecks, forceCheck, getCheckContent } from "@/lib/api";
 
 interface Check {
   id: number;
@@ -13,7 +13,10 @@ interface Check {
   targetDate: string;
   price: number | null;
   hasContent: boolean;
+  showContent?: boolean;
+  content?: any;
 }
+
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
@@ -93,6 +96,41 @@ export default function Home() {
   const currentChecks = filteredChecks.slice(indexOfFirstCheck, indexOfLastCheck);
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
+
+const handleViewContent = async (checkId: number) => {
+  const updatedChecks = checks.map(check => {
+    if (check.id === checkId) {
+      // Toggle content visibility if already loaded
+      if (check.content) {
+        return { ...check, showContent: !check.showContent };
+      }
+      // Load content if not already loaded
+      return { ...check, showContent: true };
+    }
+    // Hide content for other rows
+    return { ...check, showContent: false };
+  });
+  setChecks(updatedChecks);
+
+  // Only fetch if content isn't already loaded
+  const targetCheck = checks.find(c => c.id === checkId);
+  if (!targetCheck?.content) {
+    try {
+      const content = await getCheckContent(checkId);
+      const finalChecks = updatedChecks.map(check => {
+        if (check.id === checkId) {
+          return { ...check, content };
+        }
+        return check;
+      });
+      setChecks(finalChecks);
+    } catch (error) {
+      console.error('Failed to fetch content:', error);
+    }
+  }
+};
+
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="navbar bg-base-100 shadow-lg">
@@ -164,6 +202,7 @@ export default function Home() {
                 <th onClick={() => handleSort('hasContent')} className="cursor-pointer">
                   Status {sortConfig?.key === 'hasContent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -173,6 +212,7 @@ export default function Home() {
                 </tr>
               ) : (
                 currentChecks.map((check) => (
+                    <>
                   <tr key={check.id}>
                     <td>{new Date(check.timestamp).toLocaleString()}</td>
                     <td>{check.httpCode}</td>
@@ -183,8 +223,35 @@ export default function Home() {
                         {check.hasContent ? 'Found' : 'Not Found'}
                       </span>
                     </td>
+                    <td>
+                      {check.hasContent && (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => handleViewContent(check.id)}
+                        >
+                          {check.showContent ? 'Hide Content' : 'View Content'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
+                  {check.showContent && (
+                    <tr>
+                      <td colSpan={7} className="bg-base-200 p-4">
+                        <div className="whitespace-pre-wrap">
+                          {check.content ? (
+                            <pre className="bg-base-300 p-4 rounded-lg">
+                              {JSON.stringify(check.content, null, 2)}
+                            </pre>
+                          ) : (
+                            <div className="loading loading-spinner"/>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+            </>
                 ))
+
               )}
             </tbody>
           </table>

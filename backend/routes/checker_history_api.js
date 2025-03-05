@@ -40,6 +40,54 @@ router.get('/get-checks', async (req, res) => {
     }
 });
 
+router.get('/get-check-content', async (req, res) => {
+    try {
+        // Extract check_id from the query parameters
+        const { check_id } = req.query;
+
+        // Validate that check_id is provided
+        if (!check_id) {
+            return res.status(400).json({ error: 'Missing check_id parameter' });
+        }
+
+        // Query the Supabase database for the specific content using check_id
+        const { data, error } = await supabase
+            .from(TABLE_CHECKER_CONTENT)
+            .select('*')
+            .eq('id', check_id) // Use the 'id' column to filter by the provided check_id
+            .single(); // Ensure that only a single row is returned
+
+        // Handle possible database errors
+        if (error) {
+            console.error('Error fetching content:', error);
+            return res.status(500).json({ error: 'Error retrieving content' });
+        }
+
+        // Check if data exists for the given check_id
+        if (!data) {
+            return res.status(404).json({ error: 'Content not found for the given check_id' });
+        }
+
+        // Send back the content in the response
+        res.json({
+            success: true,
+            content: {
+                id: data.id,
+                timestamp: data.created_at,
+                httpCode: data.http_code,
+                url: data.full_url,
+                targetDate: data.target_date,
+                price: data.price,
+                contentData: data.content_data || null, // Replace 'content_data' with the actual column name in the table
+            }
+        });
+
+    } catch (error) {
+        console.error('Unexpected error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // New route to force a check
 router.post('/force-check', async (req, res) => {
     try {
