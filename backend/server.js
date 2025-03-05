@@ -6,11 +6,11 @@ const axios = require('axios');
 const cors = require('cors');
 const apicache = require('apicache');
 const apiRoutes = require('./routes/api');
-
+const scheduler = require('./scheduler');
 const app = express();
 
 // Initialize apicache with a 1 hour cache duration
-const cache = apicache.middleware('1 hour');
+const cache = apicache.middleware('1 minute');
 
 app.use(express.json());
 app.use(cors({
@@ -18,9 +18,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Apply caching middleware to all /api/ routes
+app.use('/api/', cache, apiRoutes);
 
-const apiRoutes = require('./routes/api');
-const scheduler = require('./scheduler');
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

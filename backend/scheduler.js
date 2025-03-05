@@ -9,6 +9,7 @@ const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 const dateToCheck = process.env.TARGET_DATE;
 const searchTerm = process.env.TARGET_LABEL;
+const https = require('https');
 
 const TABLE_CHECKER_CONTENT = "checker_content";
 
@@ -27,7 +28,10 @@ async function checkSkiPassStation() {
                 partner_date: dateToCheck,
                 start_date: dateToCheck
             },
-            headers: custom_headers
+            headers: custom_headers,
+            httpsAgent: new https.Agent({
+                rejectUnauthorized: false
+            })
         });
 
         const $ = cheerio.load(response.data);

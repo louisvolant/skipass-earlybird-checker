@@ -10,7 +10,7 @@ const api = axios.create({
 
 export async function getLastChecks() {
   try {
-    const response = await api.get('/getchecks');
+    const response = await api.get('/api/get-checks');
     return response.data.checks;
   } catch (error) {
     console.error('Error fetching checks:', error);
@@ -20,7 +20,7 @@ export async function getLastChecks() {
 
 export async function forceCheck() {
   try {
-    const response = await api.post('/force-check');
+    const response = await api.post('/api/force-check');
     return response.data;
   } catch (error) {
     console.error('Error forcing check:', error);

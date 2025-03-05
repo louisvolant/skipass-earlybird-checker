@@ -7,7 +7,7 @@ const { checkSkiPassStation } = require('../scheduler');
 const TABLE_CHECKER_CONTENT = "checker_content";
 
 // Existing route to get checks
-router.get('/getchecks', async (req, res) => {
+router.get('/get-checks', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from(TABLE_CHECKER_CONTENT)
