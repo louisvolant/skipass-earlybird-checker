@@ -35,7 +35,8 @@ async function checkSkiPassStation() {
         });
 
         const $ = cheerio.load(response.data);
-        const found = $('body').text().includes(searchTerm);
+        const bodyText = $('body').text().toLowerCase();
+        const found = bodyText.includes(searchTerm.toLowerCase());
         const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
 
         if (found) {
@@ -98,16 +99,16 @@ async function checkSkiPassStation() {
         if (dbError) {
             console.error('Error saving error case:', dbError);
         }
-        return { found: false, price: null, error: error.message }; // Return result with error
+        return { found: false, price: null, error: error.message };
     }
 }
 
 // Schedule the task (every 6 hours)
-cron.schedule('0 */6 * * *', () => {
+cron.schedule('0 */12 * * *', () => {
     console.log('Starting scheduled check...');
     checkSkiPassStation();
 });
 
-console.log('Application started. Check scheduled every 6 hours.');
+console.log('Application started. Check scheduled every 12 hours.');
 
-module.exports = { checkSkiPassStation }; // Export the function
+module.exports = { checkSkiPassStation };
