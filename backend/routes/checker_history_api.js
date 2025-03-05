@@ -78,7 +78,7 @@ router.get('/get-check-content', async (req, res) => {
                 url: data.full_url,
                 targetDate: data.target_date,
                 price: data.price,
-                contentData: data.content_data || null, // Replace 'content_data' with the actual column name in the table
+                contentData: data.content_data || null,
             }
         });
 

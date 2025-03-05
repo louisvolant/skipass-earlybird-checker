@@ -1,6 +1,6 @@
 // src/app/page.tsx
 'use client';
-
+import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getLastChecks, forceCheck, getCheckContent } from "@/lib/api";
@@ -193,6 +193,9 @@ const handleViewContent = async (checkId: number) => {
                 <th onClick={() => handleSort('httpCode')} className="cursor-pointer">
                   HTTP Code {sortConfig?.key === 'httpCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th>
+                 URL
+                </th>
                 <th onClick={() => handleSort('targetDate')} className="cursor-pointer">
                   Target Date {sortConfig?.key === 'targetDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
@@ -211,45 +214,46 @@ const handleViewContent = async (checkId: number) => {
                   <td colSpan={5} className="text-center">No checks match the current filter</td>
                 </tr>
               ) : (
-                currentChecks.map((check) => (
-                    <>
-                  <tr key={check.id}>
-                    <td>{new Date(check.timestamp).toLocaleString()}</td>
-                    <td>{check.httpCode}</td>
-                    <td>{check.targetDate}</td>
-                    <td>{check.price ? `€${check.price.toFixed(2)}` : '-'}</td>
-                    <td>
-                      <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
-                        {check.hasContent ? 'Found' : 'Not Found'}
-                      </span>
-                    </td>
-                    <td>
-                      {check.hasContent && (
-                        <button
-                          className="btn btn-sm btn-primary"
-                          onClick={() => handleViewContent(check.id)}
-                        >
-                          {check.showContent ? 'Hide Content' : 'View Content'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                  {check.showContent && (
-                    <tr>
-                      <td colSpan={7} className="bg-base-200 p-4">
-                        <div className="whitespace-pre-wrap">
-                          {check.content ? (
-                            <pre className="bg-base-300 p-4 rounded-lg">
-                              {JSON.stringify(check.content, null, 2)}
-                            </pre>
-                          ) : (
-                            <div className="loading loading-spinner"/>
-                          )}
-                        </div>
+                  currentChecks.map((check) => (
+                  <React.Fragment key={`check-${check.id}`}>
+                    {/* Main row doesn't need a key since it's inside a keyed Fragment */}
+                    <tr className="hover">
+                      <td>{new Date(check.timestamp).toLocaleString()}</td>
+                      <td>{check.httpCode}</td>
+                      <td>{check.url}</td>
+                      <td>{check.targetDate}</td>
+                      <td>{check.price || '-'}</td>
+                      <td>
+                        <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
+                          {check.hasContent ? 'Found' : 'Not Found'}
+                        </span>
+                      </td>
+                      <td>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleViewContent(check.id)}
+                          >
+                            {check.showContent ? 'Hide Content' : 'View Content'}
+                          </button>
                       </td>
                     </tr>
-                  )}
-            </>
+                    {/* Content row with its own unique key */}
+                    {check.showContent && (
+                      <tr key={`content-${check.id}`}>
+                        <td colSpan={7} className="bg-base-200 p-4">
+                          <div className="whitespace-pre-wrap">
+                            {check.content ? (
+                              <pre className="bg-base-300 p-4 rounded-lg">
+                                {JSON.stringify(check.content, null, 2)}
+                              </pre>
+                            ) : (
+                              <div className="loading loading-spinner"/>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
 
               )}

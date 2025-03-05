@@ -20,9 +20,8 @@ export async function getLastChecks() {
 
 export async function getCheckContent(checkId: number) {
   try {
-    const response = await fetch(`/api/get-content?check_id=${checkId}`);
-    const data = await response.json();
-    return data.content;
+    const response = await api.get(`/api/get-check-content?check_id=${checkId}`);
+    return response.data.content;
   } catch (error) {
     console.error('Error fetching check content:', error);
     throw error;
