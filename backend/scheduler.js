@@ -42,9 +42,24 @@ async function checkSkiPassStation() {
         if (found) {
             console.log(`[${new Date().toISOString()}] "${searchTerm}" found!`);
 
-            const priceElement = $('.product-row__button .button__text').text();
+            // Find the specific product row where the link text matches the searchTerm exactly
+            const productRow = $('.product-row').filter((i, el) => {
+                const linkText = $(el).find('.product-row__link').text().trim().toLowerCase();
+                return linkText === searchTerm.toLowerCase();
+            }).first();
+
+            if (productRow.length === 0) {
+                console.error(`No product row found for "${searchTerm}"`);
+                return { found: false, price: null };
+            }
+
+            // Extract price from the button__text within that specific row
+            const priceElement = productRow.find('.product-row__button .button__text').text().trim();
+            console.log('Price element text:', priceElement); // Debug output
+
             const priceMatch = priceElement.match(/€[\d.]+/);
             const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
+            console.log('Extracted price:', price); // Debug output
 
             const { error } = await supabase
                 .from(TABLE_CHECKER_CONTENT)
@@ -60,8 +75,9 @@ async function checkSkiPassStation() {
             if (error) {
                 console.error('Error saving successful check:', error);
             }
-            return { found: true, price: price }; // Return result
+            return { found: true, price: price };
         } else {
+
             console.log(`[${new Date().toISOString()}] "${searchTerm}" not found.`);
 
             const { error } = await supabase
