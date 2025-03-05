@@ -14,7 +14,7 @@ interface Check {
   price: number | null;
   hasContent: boolean;
   showContent?: boolean;
-  content?: any;
+  content?: Record<string, unknown>;
 }
 
 
@@ -97,14 +97,16 @@ export default function Home() {
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
 
+// src/app/page.tsx
 const handleViewContent = async (checkId: number) => {
-  const updatedChecks = checks.map(check => {
+  // Update checks optimistically to show loading state or toggle visibility
+  const updatedChecks = checks.map((check) => {
     if (check.id === checkId) {
-      // Toggle content visibility if already loaded
       if (check.content) {
+        // Toggle visibility if content is already loaded
         return { ...check, showContent: !check.showContent };
       }
-      // Load content if not already loaded
+      // Mark as loading content
       return { ...check, showContent: true };
     }
     // Hide content for other rows
@@ -112,20 +114,24 @@ const handleViewContent = async (checkId: number) => {
   });
   setChecks(updatedChecks);
 
-  // Only fetch if content isn't already loaded
-  const targetCheck = checks.find(c => c.id === checkId);
+  // Fetch content if not already loaded
+  const targetCheck = checks.find((c) => c.id === checkId);
   if (!targetCheck?.content) {
     try {
       const content = await getCheckContent(checkId);
-      const finalChecks = updatedChecks.map(check => {
-        if (check.id === checkId) {
-          return { ...check, content };
-        }
-        return check;
-      });
-      setChecks(finalChecks);
+      setChecks((prevChecks) =>
+        prevChecks.map((check) =>
+          check.id === checkId ? { ...check, content } : check
+        )
+      );
     } catch (error) {
       console.error('Failed to fetch content:', error);
+      // Optionally revert showContent on error
+      setChecks((prevChecks) =>
+        prevChecks.map((check) =>
+          check.id === checkId ? { ...check, showContent: false } : check
+        )
+      );
     }
   }
 };
@@ -230,7 +236,7 @@ const handleViewContent = async (checkId: number) => {
                       </td>
                       <td>
                           <button
-                            className="btn btn-sm btn-primary"
+                            className="badge badge-outline badge-accent"
                             onClick={() => handleViewContent(check.id)}
                           >
                             {check.showContent ? 'Hide Content' : 'View Content'}
