@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 const { checkSkiPassStation } = require('../scheduler');
+const apicache = require('apicache');
 
 const TABLE_CHECKER_CONTENT = "checker_content";
 
@@ -101,6 +102,9 @@ router.post('/force-check', async (req, res) => {
                 error: result.error
             });
         }
+
+        // Clear the cache for get-checks
+        apicache.clear('/api/get-checks');
 
         res.json({
             success: true,
