@@ -195,78 +195,76 @@ const handleViewContent = async (checkId: number) => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="table w-full">
+          <table className="table w-full table-zebra">
             <thead>
               <tr>
-                <th onClick={() => handleSort('timestamp')} className="cursor-pointer">
+                <th className="cursor-pointer" onClick={() => handleSort('timestamp')}>
                   Timestamp {sortConfig?.key === 'timestamp' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th onClick={() => handleSort('httpCode')} className="cursor-pointer">
+                <th className="cursor-pointer hidden md:table-cell" onClick={() => handleSort('httpCode')}>
                   HTTP Code {sortConfig?.key === 'httpCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>
-                 URL
-                </th>
-                <th onClick={() => handleSort('targetDate')} className="cursor-pointer">
+                <th>URL</th>
+                <th className="cursor-pointer hidden md:table-cell" onClick={() => handleSort('targetDate')}>
                   Target Date {sortConfig?.key === 'targetDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th onClick={() => handleSort('price')} className="cursor-pointer">
+                <th className="cursor-pointer" onClick={() => handleSort('price')}>
                   Price {sortConfig?.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th onClick={() => handleSort('hasContent')} className="cursor-pointer">
+                <th className="cursor-pointer" onClick={() => handleSort('hasContent')}>
                   Status {sortConfig?.key === 'hasContent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>Actions</th>
+                <th className="hidden md:table-cell">Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentChecks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center">No checks match the current filter</td>
+                  <td colSpan={7} className="text-center">No checks match the current filter</td>
                 </tr>
               ) : (
-                  currentChecks.map((check) => (
+                currentChecks.map((check) => (
                   <React.Fragment key={`check-${check.id}`}>
-                    {/* Main row doesn't need a key since it's inside a keyed Fragment */}
                     <tr className="hover">
-                      <td>{new Date(check.timestamp).toLocaleString()}</td>
-                      <td>{check.httpCode}</td>
-                      <td className="flex items-center">
-                        <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-32'}`}>{check.url}</span>
+                      <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
+                      <td className="hidden md:table-cell">{check.httpCode}</td>
+                      <td className="flex items-center max-w-[150px] md:max-w-[300px]">
+                        <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-full'}`}>
+                          {check.url}
+                        </span>
                         <button
-                          className="ml-2 btn btn-xs btn-outline"
+                          className="ml-2 btn btn-xs btn-outline flex-shrink-0"
                           onClick={() => toggleUrlExpand(check.id)}
                         >
                           {expandedUrls[check.id] ? '-' : '+'}
                         </button>
                       </td>
-                      <td>{check.targetDate}</td>
+                      <td className="hidden md:table-cell">{check.targetDate}</td>
                       <td>{check.price || '-'}</td>
                       <td>
                         <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
                           {check.hasContent ? 'Found' : 'Not Found'}
                         </span>
                       </td>
-                      <td>
-                          <button
-                            className="badge badge-outline badge-accent"
-                            onClick={() => handleViewContent(check.id)}
-                          >
-                            {check.showContent ? 'Hide Content' : 'View Content'}
-                          </button>
+                      <td className="hidden md:table-cell">
+                        <button
+                          className="badge badge-outline badge-accent"
+                          onClick={() => handleViewContent(check.id)}
+                        >
+                          {check.showContent ? 'Hide' : 'View'}
+                        </button>
                       </td>
                     </tr>
-                    {/* Content row with its own unique key */}
                     {check.showContent && (
                       <tr key={`content-${check.id}`}>
-                        <td colSpan={7} className="bg-base-200 p-4">
-                          <div className="whitespace-pre-wrap">
+                        <td colSpan={7} className="bg-base-200 p-2 md:p-4">
+                          <div className="whitespace-pre-wrap text-xs md:text-sm overflow-auto max-h-40 md:max-h-64">
                             {check.content ? (
-                              <pre className="bg-base-300 p-4 rounded-lg">
+                              <pre className="bg-base-300 p-2 md:p-4 rounded-lg">
                                 {JSON.stringify(check.content, null, 2)}
                               </pre>
                             ) : (
-                              <div className="loading loading-spinner"/>
+                              <div className="loading loading-spinner" />
                             )}
                           </div>
                         </td>
@@ -274,7 +272,6 @@ const handleViewContent = async (checkId: number) => {
                     )}
                   </React.Fragment>
                 ))
-
               )}
             </tbody>
           </table>
