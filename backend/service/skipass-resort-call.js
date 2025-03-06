@@ -1,8 +1,7 @@
-// scheduler.js
-const cron = require('node-cron');
+// service/skipass-resort-call.js
 const axios = require('axios');
 const cheerio = require('cheerio');
-const supabase = require('./config/supabase');
+const supabase = require('../config/supabase');
 
 // Configuration
 const url = process.env.BASE_SKI_RESORT_URL;
@@ -118,13 +117,5 @@ async function checkSkiPassStation() {
         return { found: false, price: null, error: error.message };
     }
 }
-
-// Schedule the task (every 6 hours)
-cron.schedule('0 */12 * * *', () => {
-    console.log('Starting scheduled check...');
-    checkSkiPassStation();
-});
-
-console.log('Application started. Check scheduled every 12 hours.');
 
 module.exports = { checkSkiPassStation };

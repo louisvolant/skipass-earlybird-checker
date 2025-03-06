@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
-const { checkSkiPassStation } = require('../scheduler');
+const { checkSkiPassStation } = require('../service/skipass-resort-call');
 const apicache = require('apicache');
 
 const TABLE_CHECKER_CONTENT = "checker_content";
