@@ -15,8 +15,9 @@ interface Check {
   targetLabel: string;
   price: number | null;
   hasContent: boolean;
-  content?: Record<string, unknown>;
-}
+  content?: {
+    contentData: string;
+  };}
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
