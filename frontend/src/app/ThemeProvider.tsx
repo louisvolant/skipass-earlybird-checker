@@ -19,6 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const initialTheme = savedTheme ? savedTheme === 'dark' : prefersDark;
     setDarkMode(initialTheme);
     document.documentElement.classList.toggle('dark', initialTheme);
+    console.log('Initial theme:', initialTheme ? 'dark' : 'light');
   }, []);
 
   const toggleDarkMode = () => {
@@ -26,6 +27,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const newMode = !prev;
       document.documentElement.classList.toggle('dark', newMode);
       localStorage.setItem('theme', newMode ? 'dark' : 'light');
+      console.log('Toggled to:', newMode ? 'dark' : 'light');
       return newMode;
     });
   };

@@ -3,6 +3,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { getLastChecks, forceCheck, getCheckContent } from "@/lib/api";
 
 interface Check {
@@ -13,10 +14,8 @@ interface Check {
   targetDate: string;
   price: number | null;
   hasContent: boolean;
-  showContent?: boolean;
   content?: Record<string, unknown>;
 }
-
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
@@ -25,6 +24,7 @@ export default function Home() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Check; direction: 'asc' | 'desc' } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
   const [expandedUrls, setExpandedUrls] = useState<{ [key: number]: boolean }>({});
+  const [selectedCheckId, setSelectedCheckId] = useState<number | null>(null); // New state for selected content
   const checksPerPage = 10;
 
   const fetchChecks = async () => {
@@ -48,15 +48,46 @@ export default function Home() {
     }
   };
 
-  const handleRefresh = () => {
-    fetchChecks();
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await fetchChecks();
+    } catch (error) {
+      console.error('Failed to refresh checks:', error);
+      alert('Failed to refresh checks. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchChecks();
   }, []);
 
-  // Sorting function
+  const handleViewContent = async (checkId: number) => {
+    if (selectedCheckId === checkId) {
+      setSelectedCheckId(null); // Hide content if already selected
+      return;
+    }
+
+    setSelectedCheckId(checkId);
+    const targetCheck = checks.find((c) => c.id === checkId);
+    if (!targetCheck?.content) {
+      try {
+        const content = await getCheckContent(checkId);
+        setChecks((prevChecks) =>
+          prevChecks.map((check) =>
+            check.id === checkId ? { ...check, content } : check
+          )
+        );
+      } catch (error) {
+        console.error('Failed to fetch content:', error);
+        setSelectedCheckId(null); // Reset on error
+      }
+    }
+  };
+
+  // Sorting, filtering, and pagination logic remains unchanged
   const handleSort = (key: keyof Check) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -69,16 +100,13 @@ export default function Home() {
     setExpandedUrls(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Apply sorting
   const sortedChecks = [...checks].sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
     const aValue = a[key];
     const bValue = b[key];
-
     if (aValue === null) return 1;
     if (bValue === null) return -1;
-
     if (typeof aValue === 'string') {
       return direction === 'asc'
         ? aValue.localeCompare(bValue as string)
@@ -89,94 +117,39 @@ export default function Home() {
       : (bValue as number) - (aValue as number);
   });
 
-  // Apply filter
   const filteredChecks = sortedChecks.filter(check => {
     if (statusFilter === 'all') return true;
     return statusFilter === 'found' ? check.hasContent : !check.hasContent;
   });
 
-  // Pagination
   const indexOfLastCheck = currentPage * checksPerPage;
   const indexOfFirstCheck = indexOfLastCheck - checksPerPage;
   const currentChecks = filteredChecks.slice(indexOfFirstCheck, indexOfLastCheck);
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
-
-// src/app/page.tsx
-const handleViewContent = async (checkId: number) => {
-  // Update checks optimistically to show loading state or toggle visibility
-  const updatedChecks = checks.map((check) => {
-    if (check.id === checkId) {
-      if (check.content) {
-        // Toggle visibility if content is already loaded
-        return { ...check, showContent: !check.showContent };
-      }
-      // Mark as loading content
-      return { ...check, showContent: true };
-    }
-    // Hide content for other rows
-    return { ...check, showContent: false };
-  });
-  setChecks(updatedChecks);
-
-  // Fetch content if not already loaded
-  const targetCheck = checks.find((c) => c.id === checkId);
-  if (!targetCheck?.content) {
-    try {
-      const content = await getCheckContent(checkId);
-      setChecks((prevChecks) =>
-        prevChecks.map((check) =>
-          check.id === checkId ? { ...check, content } : check
-        )
-      );
-    } catch (error) {
-      console.error('Failed to fetch content:', error);
-      // Optionally revert showContent on error
-      setChecks((prevChecks) =>
-        prevChecks.map((check) =>
-          check.id === checkId ? { ...check, showContent: false } : check
-        )
-      );
-    }
-  }
-};
-
+  const selectedCheck = checks.find(check => check.id === selectedCheckId);
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="navbar bg-base-100 shadow-lg">
         <div className="navbar-start">
           <div className="flex items-center px-4">
-            <Image
-              src="/icon.png"
-              alt="SkiPass Checker Logo"
-              width={40}
-              height={40}
-              className="mr-2"
-            />
-            <span className="text-xl font-bold">Skipass EarlyBird Checker</span>
+            <Image src="/icon.png" alt="SkiPass Checker Logo" width={40} height={40} className="mr-2" />
+            <Link href="/" className="text-xl font-bold">Skipass EarlyBird Checker</Link>
           </div>
         </div>
         <div className="navbar-end">
-          <button
-            className="btn btn-ghost mr-2"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9H0m0 0v5m0 0h4.582M12 12a8 8 0 018 8h-4m-4-12a8 8 0 00-8 8h4" />
-            </svg>
-          </button>
-          <button
-            className="btn btn-primary mr-4"
-            onClick={handleForceCheck}
-            disabled={loading}
-          >
+          <button className="btn btn-ghost mr-2" onClick={handleRefresh} disabled={loading}>
             {loading ? (
               <span className="loading loading-spinner"></span>
             ) : (
-              'Force Check'
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17H7V7m10 0v10M12 4a8 8 0 100 16 8 8 0 000-16zm0 2a6 6 0 110 12 6 6 0 010-12z" />
+              </svg>
             )}
+          </button>
+          <button className="btn btn-primary mr-4" onClick={handleForceCheck} disabled={loading}>
+            {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
           </button>
         </div>
       </header>
@@ -219,58 +192,39 @@ const handleViewContent = async (checkId: number) => {
             </thead>
             <tbody>
               {currentChecks.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center">No checks match the current filter</td>
-                </tr>
+                <tr><td colSpan={7} className="text-center">No checks match the current filter</td></tr>
               ) : (
                 currentChecks.map((check) => (
-                  <React.Fragment key={`check-${check.id}`}>
-                    <tr className="hover">
-                      <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
-                      <td className="hidden md:table-cell">{check.httpCode}</td>
-                      <td className="flex items-center max-w-[150px] md:max-w-[300px]">
-                        <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-full'}`}>
-                          {check.url}
-                        </span>
-                        <button
-                          className="ml-2 btn btn-xs btn-outline flex-shrink-0"
-                          onClick={() => toggleUrlExpand(check.id)}
-                        >
-                          {expandedUrls[check.id] ? '-' : '+'}
-                        </button>
-                      </td>
-                      <td className="hidden md:table-cell">{check.targetDate}</td>
-                      <td>{check.price || '-'}</td>
-                      <td>
-                        <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
-                          {check.hasContent ? 'Found' : 'Not Found'}
-                        </span>
-                      </td>
-                      <td className="hidden md:table-cell">
-                        <button
-                          className="badge badge-outline badge-accent"
-                          onClick={() => handleViewContent(check.id)}
-                        >
-                          {check.showContent ? 'Hide' : 'View'}
-                        </button>
-                      </td>
-                    </tr>
-                    {check.showContent && (
-                      <tr key={`content-${check.id}`}>
-                        <td colSpan={7} className="bg-base-200 p-2 md:p-4">
-                          <div className="whitespace-pre-wrap text-xs md:text-sm overflow-auto max-h-40 md:max-h-64">
-                            {check.content ? (
-                              <pre className="bg-base-300 p-2 md:p-4 rounded-lg">
-                                {JSON.stringify(check.content, null, 2)}
-                              </pre>
-                            ) : (
-                              <div className="loading loading-spinner" />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={`check-${check.id}`} className="hover">
+                    <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
+                    <td className="hidden md:table-cell">{check.httpCode}</td>
+                    <td className="flex items-center max-w-[150px] md:max-w-[300px]">
+                      <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-full'}`}>
+                        {check.url}
+                      </span>
+                      <button
+                        className="ml-2 btn btn-xs btn-outline flex-shrink-0"
+                        onClick={() => toggleUrlExpand(check.id)}
+                      >
+                        {expandedUrls[check.id] ? '-' : '+'}
+                      </button>
+                    </td>
+                    <td className="hidden md:table-cell">{check.targetDate}</td>
+                    <td>{check.price || '-'}</td>
+                    <td>
+                      <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
+                        {check.hasContent ? 'Found' : 'Not Found'}
+                      </span>
+                    </td>
+                    <td className="hidden md:table-cell">
+                      <button
+                        className="badge badge-outline badge-accent"
+                        onClick={() => handleViewContent(check.id)}
+                      >
+                        {selectedCheckId === check.id ? 'Hide' : 'View'}
+                      </button>
+                    </td>
+                  </tr>
                 ))
               )}
             </tbody>
@@ -298,6 +252,25 @@ const handleViewContent = async (checkId: number) => {
               >
                 »
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Content Display Section */}
+        {selectedCheck && (
+          <div className="mt-6 bg-base-200 p-4 rounded-lg">
+            <h2 className="text-lg font-semibold mb-2">
+              Content for Check at {new Date(selectedCheck.timestamp).toLocaleString()} (URL: {selectedCheck.url})
+            </h2>
+            <div className="text-sm text-gray-600 mb-2">
+              HTTP Code: {selectedCheck.httpCode} | Target Date: {selectedCheck.targetDate} | Price: {selectedCheck.price || 'N/A'}
+            </div>
+            <div className="whitespace-pre-wrap text-xs overflow-auto max-h-96 bg-base-300 p-4 rounded-lg">
+              {selectedCheck.content ? (
+                <pre>{selectedCheck.content.contentData}</pre>
+              ) : (
+                <div className="loading loading-spinner" />
+              )}
             </div>
           </div>
         )}
