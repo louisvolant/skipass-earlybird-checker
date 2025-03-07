@@ -139,18 +139,16 @@ export default function Home() {
           </div>
         </div>
         <div className="navbar-end">
-          <button className="btn btn-ghost mr-2" onClick={handleRefresh} disabled={loading}>
-            {loading ? (
-              <span className="loading loading-spinner"></span>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17H7V7m10 0v10M12 4a8 8 0 100 16 8 8 0 000-16zm0 2a6 6 0 110 12 6 6 0 010-12z" />
-              </svg>
-            )}
-          </button>
-          <button className="btn btn-primary mr-4" onClick={handleForceCheck} disabled={loading}>
-            {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
-          </button>
+            <button className="btn btn-info mr-2" onClick={handleRefresh} disabled={loading}>
+              {loading ? (
+                <span className="loading loading-spinner"></span>
+              ) : (
+                'Refresh'
+              )}
+            </button>
+            <button className="btn btn-warning mr-4" onClick={handleForceCheck} disabled={loading}>
+                {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
+            </button>
         </div>
       </header>
 
@@ -198,8 +196,8 @@ export default function Home() {
                   <tr key={`check-${check.id}`} className="hover">
                     <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
                     <td className="hidden md:table-cell">{check.httpCode}</td>
-                    <td className="flex items-center max-w-[150px] md:max-w-[300px]">
-                      <span className={`truncate ${expandedUrls[check.id] ? 'w-auto' : 'w-full'}`}>
+                    <td className="flex items-center">
+                      <span className={`${expandedUrls[check.id] ? 'w-auto' : 'w-full max-w-[150px] md:max-w-[300px] truncate'}`}>
                         {check.url}
                       </span>
                       <button
