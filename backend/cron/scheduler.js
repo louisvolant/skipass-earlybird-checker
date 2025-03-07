@@ -1,4 +1,4 @@
-// scheduler.js
+// cron/scheduler.js
 const cron = require('node-cron');
 const { checkSkiPassStation } = require('../service/skipass-resort-call');
 

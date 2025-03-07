@@ -12,6 +12,7 @@ interface Check {
   httpCode: string;
   url: string;
   targetDate: string;
+  targetLabel: string;
   price: number | null;
   hasContent: boolean;
   content?: Record<string, unknown>;
@@ -261,7 +262,7 @@ export default function Home() {
               Content for Check at {new Date(selectedCheck.timestamp).toLocaleString()} (URL: {selectedCheck.url})
             </h2>
             <div className="text-sm text-gray-600 mb-2">
-              HTTP Code: {selectedCheck.httpCode} | Target Date: {selectedCheck.targetDate} | Price: {selectedCheck.price || 'N/A'}
+                HTTP Code: {selectedCheck.httpCode} | Target Date: {selectedCheck.targetDate} | Target Label: {selectedCheck.targetLabel || 'N/A'} | Price: {selectedCheck.price || 'N/A'}
             </div>
             <div className="whitespace-pre-wrap text-xs overflow-auto max-h-96 bg-base-300 p-4 rounded-lg">
               {selectedCheck.content ? (
