@@ -4,7 +4,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent } from "@/lib/api";
+import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration } from "@/lib/api";
 
 interface Check {
   id: number;
@@ -17,16 +17,24 @@ interface Check {
   hasContent: boolean;
   content?: {
     contentData: string;
-  };}
+  };
+}
+
+interface CheckerConfiguration {
+  id: number;
+  targetDate: string;
+  targetLabel: string;
+}
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
+  const [configurations, setConfigurations] = useState<CheckerConfiguration[]>([]); // New state
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Check; direction: 'asc' | 'desc' } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
   const [expandedUrls, setExpandedUrls] = useState<{ [key: number]: boolean }>({});
-  const [selectedCheckId, setSelectedCheckId] = useState<number | null>(null); // New state for selected content
+  const [selectedCheckId, setSelectedCheckId] = useState<number | null>(null);
   const checksPerPage = 10;
 
   const fetchChecks = async () => {
@@ -38,11 +46,22 @@ export default function Home() {
     }
   };
 
+  const fetchConfigurations = async () => {
+    try {
+      const response = await getCheckerConfiguration();
+      // Access the nested configurations array from response.data
+      setConfigurations(response.success ? response.configurations || [] : []);
+    } catch (error) {
+      console.error('Failed to fetch configurations:', error);
+    }
+  };
+
   const handleForceCheck = async () => {
     setLoading(true);
     try {
       await forceCheck();
       await fetchChecks();
+      await fetchConfigurations();
     } catch (error) {
       console.error('Failed to force check:', error);
     } finally {
@@ -54,6 +73,7 @@ export default function Home() {
     setLoading(true);
     try {
       await fetchChecks();
+      await fetchConfigurations();
     } catch (error) {
       console.error('Failed to refresh checks:', error);
       alert('Failed to refresh checks. Please try again.');
@@ -64,6 +84,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchChecks();
+    fetchConfigurations();
   }, []);
 
   const handleViewContent = async (checkId: number) => {
@@ -274,6 +295,35 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* Checker Configuration Section */}
+        <div className="mt-6 bg-base-200 p-4 rounded-lg">
+          <h2 className="text-lg font-semibold mb-2">Checker Configuration</h2>
+          {configurations.length === 0 ? (
+            <p className="text-gray-500">No active configurations found</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Target Date</th>
+                    <th>Target Label</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {configurations.map((config) => (
+                    <tr key={`config-${config.id}`}>
+                      <td>{config.id}</td>
+                      <td>{config.targetDate}</td>
+                      <td>{config.targetLabel}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

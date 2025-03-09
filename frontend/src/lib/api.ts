@@ -37,3 +37,13 @@ export async function forceCheck() {
     throw error;
   }
 }
+
+export async function getCheckerConfiguration() {
+  try {
+    const response = await api.get(`/api/get-checker-configuration`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching checker configuration:', error);
+    throw error;
+  }
+}
