@@ -19,9 +19,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Skipass EarlyBird Checker",
   description: "Let's check for when good deals are released",
-  icons: {
-    icon: "/icon.png",
-  },
+   keywords: "Skipass, Ski resort, mountain, earlybird, deals",
+   openGraph: {
+     title: "Skipass earlybird Deals Tracker - Find earlybird deals",
+     description: "App to track deals for Skipass Earlybird Prices.",
+     type: "website",
+     url: "https://skipass-earlybird-checker.louisvolant.com",
+     images: ["/icon.png"],
+   },
+   icons: [
+     { rel: "icon", url: "/icon.svg" },
+     { rel: "apple-touch-icon", url: "/icon.svg" },
+   ],
 };
 
 export default function RootLayout({
