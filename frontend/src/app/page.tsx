@@ -28,8 +28,10 @@ interface CheckerConfiguration {
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
-  const [configurations, setConfigurations] = useState<CheckerConfiguration[]>([]); // New state
-  const [loading, setLoading] = useState(false);
+  const [configurations, setConfigurations] = useState<CheckerConfiguration[]>([]);
+  const [isChecksLoading, setIsChecksLoading] = useState(true); // Separate loading state for checks
+  const [isConfigsLoading, setIsConfigsLoading] = useState(true); // Separate loading state for configurations
+  const [loading, setLoading] = useState(false); // For button actions
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Check; direction: 'asc' | 'desc' } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
@@ -39,20 +41,25 @@ export default function Home() {
 
   const fetchChecks = async () => {
     try {
+      setIsChecksLoading(true);
       const data = await getLastChecks();
       setChecks(data);
     } catch (error) {
       console.error('Failed to fetch checks:', error);
+    } finally {
+      setIsChecksLoading(false);
     }
   };
 
   const fetchConfigurations = async () => {
     try {
+      setIsConfigsLoading(true);
       const response = await getCheckerConfiguration();
-      // Access the nested configurations array from response.data
       setConfigurations(response.success ? response.configurations || [] : []);
     } catch (error) {
       console.error('Failed to fetch configurations:', error);
+    } finally {
+      setIsConfigsLoading(false);
     }
   };
 
@@ -60,8 +67,7 @@ export default function Home() {
     setLoading(true);
     try {
       await forceCheck();
-      await fetchChecks();
-      await fetchConfigurations();
+      await Promise.all([fetchChecks(), fetchConfigurations()]);
     } catch (error) {
       console.error('Failed to force check:', error);
     } finally {
@@ -72,8 +78,7 @@ export default function Home() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      await fetchChecks();
-      await fetchConfigurations();
+      await Promise.all([fetchChecks(), fetchConfigurations()]);
     } catch (error) {
       console.error('Failed to refresh checks:', error);
       alert('Failed to refresh checks. Please try again.');
@@ -89,7 +94,7 @@ export default function Home() {
 
   const handleViewContent = async (checkId: number) => {
     if (selectedCheckId === checkId) {
-      setSelectedCheckId(null); // Hide content if already selected
+      setSelectedCheckId(null);
       return;
     }
 
@@ -105,7 +110,7 @@ export default function Home() {
         );
       } catch (error) {
         console.error('Failed to fetch content:', error);
-        setSelectedCheckId(null); // Reset on error
+        setSelectedCheckId(null);
       }
     }
   };
@@ -162,16 +167,16 @@ export default function Home() {
           </div>
         </div>
         <div className="navbar-end">
-            <button className="btn btn-info mr-2" onClick={handleRefresh} disabled={loading}>
-              {loading ? (
-                <span className="loading loading-spinner"></span>
-              ) : (
-                'Refresh'
-              )}
-            </button>
-            <button className="btn btn-warning mr-4" onClick={handleForceCheck} disabled={loading}>
-                {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
-            </button>
+          <button className="btn btn-info mr-2" onClick={handleRefresh} disabled={loading}>
+            {loading ? (
+              <span className="loading loading-spinner"></span>
+            ) : (
+              'Refresh'
+            )}
+          </button>
+          <button className="btn btn-warning mr-4" onClick={handleForceCheck} disabled={loading}>
+            {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
+          </button>
         </div>
       </header>
 
@@ -212,7 +217,9 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {currentChecks.length === 0 ? (
+              {isChecksLoading ? (
+                <tr><td colSpan={7} className="text-center"><span className="loading loading-spinner"></span> Loading checks...</td></tr>
+              ) : currentChecks.length === 0 ? (
                 <tr><td colSpan={7} className="text-center">No checks match the current filter</td></tr>
               ) : (
                 currentChecks.map((check) => (
@@ -253,7 +260,7 @@ export default function Home() {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPages > 1 && !isChecksLoading && (
           <div className="flex justify-center mt-4">
             <div className="join">
               <button
@@ -284,13 +291,13 @@ export default function Home() {
               Content for Check at {new Date(selectedCheck.timestamp).toLocaleString()} (URL: {selectedCheck.url})
             </h2>
             <div className="text-sm text-gray-600 mb-2">
-                HTTP Code: {selectedCheck.httpCode} | Target Date: {selectedCheck.targetDate} | Target Label: {selectedCheck.targetLabel || 'N/A'} | Price: {selectedCheck.price || 'N/A'}
+              HTTP Code: {selectedCheck.httpCode} | Target Date: {selectedCheck.targetDate} | Target Label: {selectedCheck.targetLabel || 'N/A'} | Price: {selectedCheck.price || 'N/A'}
             </div>
             <div className="whitespace-pre-wrap text-xs overflow-auto max-h-96 bg-base-300 p-4 rounded-lg">
               {selectedCheck.content ? (
                 <pre>{selectedCheck.content.contentData}</pre>
               ) : (
-                <div className="loading loading-spinner" />
+                <span className="loading loading-spinner"></span>
               )}
             </div>
           </div>
@@ -299,7 +306,9 @@ export default function Home() {
         {/* Checker Configuration Section */}
         <div className="mt-6 bg-base-200 p-4 rounded-lg">
           <h2 className="text-lg font-semibold mb-2">Checker Configuration</h2>
-          {configurations.length === 0 ? (
+          {isConfigsLoading ? (
+            <p className="text-gray-500"><span className="loading loading-spinner"></span> Loading configurations...</p>
+          ) : configurations.length === 0 ? (
             <p className="text-gray-500">No active configurations found</p>
           ) : (
             <div className="overflow-x-auto">

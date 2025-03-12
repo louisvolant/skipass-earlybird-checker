@@ -7,7 +7,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/backend/server.js" },
-    { "src": "/cron/(.*)", "dest": "/backend/cron/scheduler.js" },
+    { "src": "/cron/(.*)", "dest": "/backend/server.js" },
     { "src": "/(.*)", "dest": "/frontend/$1" }
   ],
   "crons": [
