@@ -203,10 +203,13 @@ export default function Home() {
                 <th className="cursor-pointer hidden md:table-cell" onClick={() => handleSort('httpCode')}>
                   HTTP Code {sortConfig?.key === 'httpCode' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>URL</th>
+                <th className="cursor-pointer hidden md:table-cell" onClick={() => handleSort('targetLabel')}>
+                  Target Date {sortConfig?.key === 'targetLabel' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th className="cursor-pointer hidden md:table-cell" onClick={() => handleSort('targetDate')}>
                   Target Date {sortConfig?.key === 'targetDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th>URL</th>
                 <th className="cursor-pointer" onClick={() => handleSort('price')}>
                   Price {sortConfig?.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
@@ -218,16 +221,18 @@ export default function Home() {
             </thead>
             <tbody>
               {isChecksLoading ? (
-                <tr><td colSpan={7} className="text-center"><span className="loading loading-spinner"></span> Loading checks...</td></tr>
+                <tr><td colSpan={8} className="text-center"><span className="loading loading-spinner"></span> Loading checks...</td></tr>
               ) : currentChecks.length === 0 ? (
-                <tr><td colSpan={7} className="text-center">No checks match the current filter</td></tr>
+                <tr><td colSpan={8} className="text-center">No checks match the current filter</td></tr>
               ) : (
                 currentChecks.map((check) => (
                   <tr key={`check-${check.id}`} className="hover">
                     <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
                     <td className="hidden md:table-cell">{check.httpCode}</td>
+                    <td className="hidden md:table-cell">{check.targetDate}</td>
+                    <td className="hidden md:table-cell">{check.targetLabel}</td>
                     <td className="flex items-center">
-                      <span className={`${expandedUrls[check.id] ? 'w-auto' : 'w-full max-w-[150px] md:max-w-[300px] truncate'}`}>
+                      <span className={`${expandedUrls[check.id] ? 'w-auto' : 'w-full max-w-[100px] md:max-w-[200px] truncate'}`}>
                         {check.url}
                       </span>
                       <button
@@ -237,7 +242,6 @@ export default function Home() {
                         {expandedUrls[check.id] ? '-' : '+'}
                       </button>
                     </td>
-                    <td className="hidden md:table-cell">{check.targetDate}</td>
                     <td>{check.price || '-'}</td>
                     <td>
                       <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
