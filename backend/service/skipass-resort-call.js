@@ -1,15 +1,13 @@
 // service/skipass-resort-call.js
 const axios = require('axios');
 const cheerio = require('cheerio');
-const supabase = require('../config/supabase');
 const { getActiveConfigurations } = require('../service/checker-configuration-service');
+const { saveCheckContent } = require('../service/checker-history-service');
 
 // Configuration
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 const https = require('https');
-
-const TABLE_CHECKER_CONTENT = "checker_content";
 
 // Helper function to perform a single check for a given configuration
 async function performCheckForConfig(config) {
@@ -59,61 +57,40 @@ async function performCheckForConfig(config) {
       const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
       console.log('Extracted price:', price);
 
-      const { error } = await supabase
-        .from(TABLE_CHECKER_CONTENT)
-        .insert({
-          created_at: new Date().toISOString(),
-          http_code: response.status.toString(),
-          full_url: fullUrl,
-          target_date: dateToCheck,
-          target_label: searchTerm, // Store the target_label as well
-          price: price,
-          response_text: response.data,
-        });
+      saveCheckContent(
+          response.status.toString(),
+          fullUrl,
+          dateToCheck,
+          searchTerm,
+          price,
+          response.data);
 
-      if (error) {
-        console.error('Error saving successful check:', error);
-      }
       return { found: true, price: price };
     } else {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" not found for date ${dateToCheck}.`);
 
-      const { error } = await supabase
-        .from(TABLE_CHECKER_CONTENT)
-        .insert({
-          created_at: new Date().toISOString(),
-          http_code: response.status.toString(),
-          full_url: fullUrl,
-          target_date: dateToCheck,
-          target_label: searchTerm, // Store the target_label as well
-          price: null,
-          response_text: response.data,
-        });
+      saveCheckContent(
+          response.status.toString(),
+          fullUrl,
+          dateToCheck,
+          searchTerm, // Store the target_label as well
+          null,
+          response.data);
 
-      if (error) {
-        console.error('Error saving unsuccessful check:', error);
-      }
       return { found: false, price: null };
     }
   } catch (error) {
     console.error(`Error during check for date ${dateToCheck} and label ${searchTerm}:`, error);
 
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
-    const { error: dbError } = await supabase
-      .from(TABLE_CHECKER_CONTENT)
-      .insert({
-        created_at: new Date().toISOString(),
-        http_code: error.response?.status?.toString() || 'unknown',
-        full_url: fullUrl,
-        target_date: dateToCheck,
-        target_label: searchTerm, // Store the target_label as well
-        price: null,
-        response_text: error.message,
-      });
 
-    if (dbError) {
-      console.error('Error saving error case:', dbError);
-    }
+     saveCheckContent(
+          rerror.response?.status?.toString() || 'unknown',
+          fullUrl,
+          dateToCheck,
+          searchTerm, // Store the target_label as well
+          null,
+          error.message);
     return { found: false, price: null, error: error.message };
   }
 }

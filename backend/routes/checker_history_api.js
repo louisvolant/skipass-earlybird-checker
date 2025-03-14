@@ -1,12 +1,9 @@
 // routes/checker_history_api.js
 const express = require('express');
 const router = express.Router();
-const supabase = require('../config/supabase');
 const { checkSkiPassStation } = require('../service/skipass-resort-call');
 const { getCheckList, getCheckContent } = require('../service/checker-history-service');
 const apicache = require('apicache');
-
-const TABLE_CHECKER_CONTENT = "checker_content";
 
 router.get('/get-checks', async (req, res) => {
   try {

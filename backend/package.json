@@ -12,15 +12,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
     "apicache": "^1.6.3",
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "node-cron": "^3.0.3",
-    "supabase": "^2.15.8"
+    "mongoose": "^8.12.1",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

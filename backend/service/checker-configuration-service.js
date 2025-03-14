@@ -1,24 +1,30 @@
 // service/checker-configuration-service.js
-const supabase = require('../config/supabase');
+const mongoose_client = require('../config/mongoose');
 
-const TABLE_CHECKER_CONFIGURATION = "checker_configuration";
+const activeConfigurationSchema = new mongoose_client.Schema({
+    id: Number,
+    created_at: Date,
+    is_active: Boolean,
+    target_date: String,
+    target_label: String,
+});
+const ActiveConfigurationModel = mongoose_client.model('checker_configuration', activeConfigurationSchema, 'checker_configuration'); //Third parameter forces the collection name.
 
 // Helper function to fetch active configurations
 async function getActiveConfigurations() {
   try {
-    const { data, error } = await supabase
-      .from(TABLE_CHECKER_CONFIGURATION)
-      .select('id, target_date, target_label')
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('Error fetching active configurations:', error);
-      throw new Error('Failed to fetch configurations');
+    // Check if data already exists in MongoAtlas
+    const existingData = await ActiveConfigurationModel.find({
+        is_active: true
+    });
+    if (existingData) {
+        console.info('Data (ActiveConfigurationModel) fetched from Internal MongoDB');
+    } else {
+        console.info('No Data (ActiveConfigurationModel) fetched from Internal MongoDB');
     }
-
-    return data || [];
+    return existingData;
   } catch (error) {
-    console.error('Unexpected error fetching configurations:', error);
+    console.error('Unexpected error fetching active configurations:', error);
     throw error;
   }
 }
