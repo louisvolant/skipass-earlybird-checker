@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { checkSkiPassStation } = require('../service/skipass-resort-call');
-const { getCheckList, getCheckContent } = require('../service/checker-history-service');
+const { getCheckList, getCheckContent, deleteCheckContent } = require('../service/checker-history-service');
+
 const apicache = require('apicache');
 
 router.get('/get-checks', async (req, res) => {
@@ -60,6 +61,46 @@ router.get('/get-check-content', async (req, res) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+router.post('/delete-check-content', async (req, res) => {
+  try {
+    const { check_id } = req.body;
+
+    if (!check_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing check_id parameter'
+      });
+    }
+
+    // Delete the check from the database
+    const deleted = await deleteCheckContent(check_id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'Check not found'
+      });
+    }
+
+    // Clear the cache if you're using apicache
+    apicache.clear('/api/get-checks');
+
+    res.json({
+      success: true,
+      message: 'Check deleted successfully',
+      check_id: check_id
+    });
+  } catch (error) {
+    console.error('Error deleting check:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
 });
 

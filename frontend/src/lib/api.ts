@@ -28,6 +28,16 @@ export async function getCheckContent(checkId: number) {
   }
 }
 
+export async function deleteCheckContent(checkId: number) {
+  try {
+    const response = await api.post('/api/delete-check-content', { check_id: checkId });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting check:', error);
+    throw error;
+  }
+}
+
 export async function forceCheck() {
   try {
     const response = await api.post('/api/force-check');

@@ -86,4 +86,26 @@ async function saveCheckContent(
   }
 }
 
-module.exports = { getCheckList, getCheckContent, saveCheckContent };
+
+
+async function deleteCheckContent(checkId) {
+  try {
+    // Find and delete the document with the matching 'id'
+    const result = await CheckerContentModel.findOneAndDelete({ id: checkId });
+
+    if (!result) {
+      console.info(`No check found with ID: ${checkId} in MongoDB`);
+      return null; // Return null if no document was found and deleted
+    }
+
+    console.info(`Check with ID: ${checkId} deleted from MongoDB`);
+    return result; // Return the deleted document if successful
+  } catch (error) {
+    console.error('Error deleting check from MongoDB:', error);
+    throw error; // Throw the error to be handled by the caller
+  }
+}
+
+
+
+module.exports = { getCheckList, getCheckContent, saveCheckContent, deleteCheckContent };

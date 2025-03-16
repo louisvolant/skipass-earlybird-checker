@@ -4,7 +4,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration } from "@/lib/api";
+import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent } from "@/lib/api";
 
 interface Check {
   id: number;
@@ -82,6 +82,26 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to refresh checks:', error);
       alert('Failed to refresh checks. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCheck = async (checkId: number) => {
+    if (!confirm('Are you sure you want to delete this check?')) return;
+
+    try {
+      setLoading(true);
+      await deleteCheckContent(checkId);
+      // Remove the deleted check from state
+      setChecks(prevChecks => prevChecks.filter(check => check.id !== checkId));
+      // If this was the selected check, clear the selection
+      if (selectedCheckId === checkId) {
+        setSelectedCheckId(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete check:', error);
+      alert('Failed to delete check. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -249,12 +269,25 @@ export default function Home() {
                       </span>
                     </td>
                     <td className="hidden md:table-cell">
-                      <button
-                        className="badge badge-outline badge-accent"
-                        onClick={() => handleViewContent(check.id)}
-                      >
-                        {selectedCheckId === check.id ? 'Hide' : 'View'}
-                      </button>
+                      <div className="flex gap-2">
+                          <button
+                            className="badge badge-outline badge-accent"
+                            onClick={() => handleViewContent(check.id)}
+                          >
+                            {selectedCheckId === check.id ? 'Hide' : 'View'}
+                          </button>
+                        <button
+                          className="badge badge-outline badge-error"
+                          onClick={() => handleDeleteCheck(check.id)}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            'Delete'
+                          )}
+                        </button>
+                    </div>
                     </td>
                   </tr>
                 ))
