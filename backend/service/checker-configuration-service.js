@@ -7,6 +7,9 @@ const activeConfigurationSchema = new mongoose_client.Schema({
     is_active: Boolean,
     target_date: String,
     target_label: String,
+    is_mail_alert: Boolean,
+    mail_alert_address: String,
+    mail_alert_contact: String
 });
 const ActiveConfigurationModel = mongoose_client.model('checker_configuration', activeConfigurationSchema, 'checker_configuration'); //Third parameter forces the collection name.
 

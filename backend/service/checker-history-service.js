@@ -1,4 +1,4 @@
-// routes/checker_history_api.js
+// service/checker-history-service.js
 const mongoose_client = require('../config/mongoose');
 
 const checkerContentSchema = new mongoose_client.Schema({
