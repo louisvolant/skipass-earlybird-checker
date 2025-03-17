@@ -73,7 +73,7 @@ async function performCheckForConfig(config) {
           response.status.toString(),
           fullUrl,
           dateToCheck,
-          searchTerm, // Store the target_label as well
+          searchTerm,
           null,
           response.data);
 
