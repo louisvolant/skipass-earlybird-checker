@@ -112,7 +112,7 @@ router.post('/force-check', async (req, res) => {
     const checkResults = await checkSkiPassStation();
     const mailResult = await sendMail(checkResults);
 
-    if (result.error) {
+    if (mailResult.error) {
       return res.status(500).json({
         success: false,
         message: 'Check failed',
