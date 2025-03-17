@@ -1,12 +1,14 @@
 // service/skipass-resort-call.js
 const axios = require('axios');
 const cheerio = require('cheerio');
+const whatwgMimetype = require('whatwg-mimetype');
 const { getActiveConfigurations } = require('../service/checker-configuration-service');
 const { saveCheckContent } = require('../service/checker-history-service');
 
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 const https = require('https');
+console.log('whatwg-mimetype:', whatwgMimetype);
 
 async function performCheckForConfig(config) {
   const { target_date: dateToCheck, target_label: searchTerm } = config;
