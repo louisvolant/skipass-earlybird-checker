@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { checkSkiPassStation } = require('../service/skipass-resort-call');
 const { getCheckList, getCheckContent, deleteCheckContent } = require('../service/checker-history-service');
+const { sendMail } = require('../service/mailer-service');
 
 const apicache = require('apicache');
 

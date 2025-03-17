@@ -1,14 +1,12 @@
 // service/skipass-resort-call.js
 const axios = require('axios');
-const cheerio = require('cheerio');
-const whatwgMimetype = require('whatwg-mimetype');
+const htmlparser2 = require('htmlparser2');
 const { getActiveConfigurations } = require('../service/checker-configuration-service');
 const { saveCheckContent } = require('../service/checker-history-service');
 
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 const https = require('https');
-console.log('whatwg-mimetype:', whatwgMimetype);
 
 async function performCheckForConfig(config) {
   const { target_date: dateToCheck, target_label: searchTerm } = config;
@@ -25,21 +23,71 @@ async function performCheckForConfig(config) {
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
 
-    const $ = cheerio.load(response.data);
-    const bodyText = $('body').text().toLowerCase();
-    const found = bodyText.includes(searchTerm.toLowerCase());
+    let bodyText = '';
+    let productRows = [];
+    let currentProductRow = null;
+    let currentLinkText = '';
+    let currentButtonText = '';
+    let insideProductRow = false;
+    let insideLink = false;
+    let insideButton = false;
+
+    const parser = new htmlparser2.Parser({
+      onopentag(name, attribs) {
+        if (name === 'body') {
+          // Start collecting body text
+        }
+        if (attribs.class?.includes('product-row')) {
+          insideProductRow = true;
+          currentProductRow = { linkText: '', buttonText: '' };
+        }
+        if (insideProductRow && attribs.class?.includes('product-row__link')) {
+          insideLink = true;
+          currentLinkText = '';
+        }
+        if (insideProductRow && attribs.class?.includes('button__text')) {
+          insideButton = true;
+          currentButtonText = '';
+        }
+      },
+      ontext(text) {
+        bodyText += text; // Collect all text within body
+        if (insideLink) currentLinkText += text;
+        if (insideButton) currentButtonText += text;
+      },
+      onclosetag(name) {
+        if (name === 'body') {
+          // End of body
+        }
+        if (insideProductRow && name === 'div' && !insideLink && !insideButton) {
+          insideProductRow = false;
+          if (currentProductRow) {
+            currentProductRow.linkText = currentLinkText.trim();
+            currentProductRow.buttonText = currentButtonText.trim();
+            productRows.push(currentProductRow);
+            currentProductRow = null;
+          }
+        }
+        if (insideLink && name === 'a') insideLink = false;
+        if (insideButton && name === 'span') insideButton = false;
+      },
+    });
+
+    parser.write(response.data);
+    parser.end();
+
+    const found = bodyText.toLowerCase().includes(searchTerm.toLowerCase());
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
 
     if (found) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
-      const productRow = $('.product-row')
-        .filter((i, el) => $(el).find('.product-row__link').text().trim().toLowerCase() === searchTerm.toLowerCase())
-        .first();
+      const productRow = productRows.find(
+        (row) => row.linkText.toLowerCase() === searchTerm.toLowerCase()
+      );
 
       let price = null;
-      if (productRow.length) {
-        const priceElement = productRow.find('.product-row__button .button__text').text().trim();
-        const priceMatch = priceElement.match(/€[\d.]+/);
+      if (productRow) {
+        const priceMatch = productRow.buttonText.match(/€[\d.]+/);
         price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
       }
 
