@@ -270,7 +270,7 @@ export default function Home() {
                 <tr><td colSpan={8} className="text-center">No checks match the current filter</td></tr>
               ) : (
                 currentChecks.map((check) => (
-                  <tr key={`check-${check.id}`} className="hover">
+                  <tr key={`check-${check.id}-${check.timestamp}`} className="hover">
                     <td className="text-sm">{new Date(check.timestamp).toLocaleString()}</td>
                     <td className="hidden md:table-cell">{check.httpCode}</td>
                     <td className="hidden md:table-cell">{check.targetDate}</td>
