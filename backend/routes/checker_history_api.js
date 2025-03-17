@@ -107,7 +107,9 @@ router.post('/delete-check-content', async (req, res) => {
 router.post('/force-check', async (req, res) => {
   try {
     console.log('Manual check requested...');
-    const result = await checkSkiPassStation();
+
+    const checkResults = await checkSkiPassStation();
+    const mailResult = await sendMail(checkResults);
 
     if (result.error) {
       return res.status(500).json({
@@ -122,8 +124,7 @@ router.post('/force-check', async (req, res) => {
     res.json({
       success: true,
       message: 'Check completed and stored',
-      found: result.found,
-      price: result.price,
+      mailResult
     });
   } catch (error) {
     console.error('Error during manual check:', error);

@@ -4,12 +4,10 @@ const cheerio = require('cheerio');
 const { getActiveConfigurations } = require('../service/checker-configuration-service');
 const { saveCheckContent } = require('../service/checker-history-service');
 
-// Configuration
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 const https = require('https');
 
-// Helper function to perform a single check for a given configuration
 async function performCheckForConfig(config) {
   const { target_date: dateToCheck, target_label: searchTerm } = config;
   const custom_headers = {
@@ -20,14 +18,9 @@ async function performCheckForConfig(config) {
 
   try {
     const response = await axios.get(searchUrl, {
-      params: {
-        partner_date: dateToCheck,
-        start_date: dateToCheck,
-      },
+      params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-      }),
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
 
     const $ = cheerio.load(response.data);
@@ -37,97 +30,60 @@ async function performCheckForConfig(config) {
 
     if (found) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
-
       const productRow = $('.product-row')
-        .filter((i, el) => {
-          const linkText = $(el).find('.product-row__link').text().trim().toLowerCase();
-          return linkText === searchTerm.toLowerCase();
-        })
+        .filter((i, el) => $(el).find('.product-row__link').text().trim().toLowerCase() === searchTerm.toLowerCase())
         .first();
 
-      if (productRow.length === 0) {
-        console.error(`No product row found for "${searchTerm}"`);
-        return { found: false, price: null };
+      let price = null;
+      if (productRow.length) {
+        const priceElement = productRow.find('.product-row__button .button__text').text().trim();
+        const priceMatch = priceElement.match(/€[\d.]+/);
+        price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
       }
 
-      const priceElement = productRow.find('.product-row__button .button__text').text().trim();
-      console.log('Price element text:', priceElement);
-
-      const priceMatch = priceElement.match(/€[\d.]+/);
-      const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
-      console.log('Extracted price:', price);
-
-      saveCheckContent(
-          response.status.toString(),
-          fullUrl,
-          dateToCheck,
-          searchTerm,
-          price,
-          response.data);
-
-      return { found: true, price: price };
+      await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, price, response.data);
+      return { found: true, price };
     } else {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" not found for date ${dateToCheck}.`);
-
-      saveCheckContent(
-          response.status.toString(),
-          fullUrl,
-          dateToCheck,
-          searchTerm,
-          null,
-          response.data);
-
+      await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, null, response.data);
       return { found: false, price: null };
     }
   } catch (error) {
     console.error(`Error during check for date ${dateToCheck} and label ${searchTerm}:`, error);
-
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
-
-     saveCheckContent(
-          rerror.response?.status?.toString() || 'unknown',
-          fullUrl,
-          dateToCheck,
-          searchTerm, // Store the target_label as well
-          null,
-          error.message);
+    await saveCheckContent(error.response?.status?.toString() || 'unknown', fullUrl, dateToCheck, searchTerm, null, error.message);
     return { found: false, price: null, error: error.message };
   }
 }
 
-// Main function to check all active configurations
 async function checkSkiPassStation() {
   try {
-    // Fetch active configurations
     const configurations = await getActiveConfigurations();
-
     if (configurations.length === 0) {
       console.log('No active configurations found.');
-      return { found: false, price: null, message: 'No active configurations' };
+      return [];
     }
 
-    const results = [];
-    // Run checks sequentially for each configuration
-    for (const config of configurations) {
-      console.log(`Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`);
-      const result = await performCheckForConfig(config);
-      results.push({
-        target_date: config.target_date,
-        target_label: config.target_label,
-        ...result,
-      });
-    }
+    const results = await Promise.all(
+      configurations.map(async (config) => {
+        console.log(`Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`);
+        const result = await performCheckForConfig(config);
+        return {
+          configId: config.id,
+          target_date: config.target_date,
+          target_label: config.target_label,
+          is_mail_alert: config.is_mail_alert,
+          mail_alert_address: config.mail_alert_address,
+          mail_alert_contact: config.mail_alert_contact,
+          ...result,
+        };
+      })
+    );
 
-    // Determine overall result (if any check found a match, return that)
-    const foundResult = results.find(res => res.found);
-    if (foundResult) {
-      return { found: true, price: foundResult.price };
-    }
-
-    return { found: false, price: null };
+    return results;
   } catch (error) {
     console.error('Error in checkSkiPassStation:', error);
-    return { found: false, price: null, error: error.message };
+    throw error;
   }
 }
 
