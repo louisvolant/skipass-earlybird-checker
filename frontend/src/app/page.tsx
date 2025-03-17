@@ -5,29 +5,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent, updateCheckerConfiguration } from "@/lib/api";
+import { Check, CheckerConfiguration } from '../lib/types';
 
-interface Check {
-  id: number;
-  timestamp: string;
-  httpCode: string;
-  url: string;
-  targetDate: string;
-  targetLabel: string;
-  price: number | null;
-  hasContent: boolean;
-  content?: {
-    contentData: string;
-  };
-}
-
-interface CheckerConfiguration {
-  id: number;
-  targetDate: string;
-  targetLabel: string;
-  is_mail_alert: boolean;
-  mail_alert_address: string;
-  mail_alert_contact: string;
-}
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);

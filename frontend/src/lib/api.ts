@@ -1,5 +1,6 @@
 // src/lib/api.ts
 import axios from 'axios';
+import { CheckerConfiguration } from '../lib/types';
 
 console.log('BACKEND_URL:', process.env.BACKEND_URL);
 
