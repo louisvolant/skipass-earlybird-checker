@@ -57,3 +57,16 @@ export async function getCheckerConfiguration() {
     throw error;
   }
 }
+
+export async function updateCheckerConfiguration(configId: number, updatedConfig: Partial<CheckerConfiguration>) {
+  try {
+    const response = await api.post('/api/update-checker-configuration', {
+      id: configId,
+      ...updatedConfig
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating checker configuration:', error);
+    throw error;
+  }
+}

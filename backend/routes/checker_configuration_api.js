@@ -1,8 +1,7 @@
 // routes/checker_configuration_api.js
 const express = require('express');
 const router = express.Router();
-const { getActiveConfigurations } = require('../service/checker-configuration-service');
-const { sendMail } = require('../service/mailer-service');
+const { getActiveConfigurations, updateConfiguration } = require('../service/checker-configuration-service');
 const { maskEmail } = require('../utils/mail-utils');
 
 const apicache = require('apicache');
@@ -29,20 +28,44 @@ router.get('/get-checker-configuration', async (req, res) => {
   }
 });
 
-router.get('/send-mail', async (req, res) => {
+router.post('/update-checker-configuration', async (req, res) => {
   try {
-    const result = await sendMail(getActiveConfigurations());
+    const { id, targetDate, targetLabel, is_mail_alert, mail_alert_address, mail_alert_contact } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Configuration ID is required'
+      });
+    }
+
+    const updatedConfig = await updateConfiguration(id, {
+      target_date: targetDate,
+      target_label: targetLabel,
+      is_mail_alert,
+      mail_alert_address,
+      mail_alert_contact
+    });
+
     res.json({
       success: true,
-      data: result
+      configuration: {
+        id: updatedConfig.id,
+        targetDate: updatedConfig.target_date,
+        targetLabel: updatedConfig.target_label,
+        is_mail_alert: !!updatedConfig.is_mail_alert,
+        mail_alert_address: maskEmail(updatedConfig.mail_alert_address),
+        mail_alert_contact: updatedConfig.mail_alert_contact
+      }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Failed to send Mail',
+      error: 'Failed to update configuration',
       message: error.message
     });
   }
 });
+
 
 module.exports = router;

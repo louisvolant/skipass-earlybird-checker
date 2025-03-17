@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.use(require('./checker_history_api'));
 router.use(require('./checker_configuration_api'));
+router.use(require('./mailer_api'));
 
 module.exports = router;

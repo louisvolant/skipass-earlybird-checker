@@ -4,7 +4,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent } from "@/lib/api";
+import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent, updateCheckerConfiguration } from "@/lib/api";
 
 interface Check {
   id: number;
@@ -24,6 +24,9 @@ interface CheckerConfiguration {
   id: number;
   targetDate: string;
   targetLabel: string;
+  is_mail_alert: boolean;
+  mail_alert_address: string;
+  mail_alert_contact: string;
 }
 
 export default function Home() {
@@ -37,6 +40,9 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
   const [expandedUrls, setExpandedUrls] = useState<{ [key: number]: boolean }>({});
   const [selectedCheckId, setSelectedCheckId] = useState<number | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<CheckerConfiguration | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   const checksPerPage = 10;
 
   const fetchChecks = async () => {
@@ -176,6 +182,45 @@ export default function Home() {
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
   const selectedCheck = checks.find(check => check.id === selectedCheckId);
+
+
+  const handleUpdateClick = (config: CheckerConfiguration) => {
+    setSelectedConfig(config);
+    setUpdateSuccess(false);
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedConfig) return;
+
+    setUpdateLoading(true);
+    try {
+      await updateCheckerConfiguration(selectedConfig.id, {
+        targetDate: selectedConfig.targetDate,
+        targetLabel: selectedConfig.targetLabel,
+        is_mail_alert: selectedConfig.is_mail_alert,
+        mail_alert_address: selectedConfig.mail_alert_address,
+        mail_alert_contact: selectedConfig.mail_alert_contact
+      });
+      await fetchConfigurations(); // Refresh the table
+      setUpdateSuccess(true);
+      setTimeout(() => {
+        setSelectedConfig(null);
+        setUpdateSuccess(false);
+      }, 2000); // Auto-close after 2 seconds
+    } catch (error) {
+      console.error('Failed to update configuration:', error);
+      alert('Failed to update configuration. Please try again.');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleConfigChange = (field: keyof CheckerConfiguration, value: string | boolean) => {
+    if (selectedConfig) {
+      setSelectedConfig({ ...selectedConfig, [field]: value });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -341,6 +386,7 @@ export default function Home() {
         )}
 
         {/* Checker Configuration Section */}
+
         <div className="mt-6 bg-base-200 p-4 rounded-lg">
           <h2 className="text-lg font-semibold mb-2">Checker Configuration</h2>
           {isConfigsLoading ? (
@@ -355,6 +401,8 @@ export default function Home() {
                     <th>ID</th>
                     <th>Target Date</th>
                     <th>Target Label</th>
+                    <th>Mail Alert</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -363,10 +411,93 @@ export default function Home() {
                       <td>{config.id}</td>
                       <td>{config.targetDate}</td>
                       <td>{config.targetLabel}</td>
+                      <td>{config.is_mail_alert ? 'Yes' : 'No'}</td>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-outline btn-accent"
+                          onClick={() => handleUpdateClick(config)}
+                        >
+                          Update
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Update Form */}
+          {selectedConfig && (
+            <div className="mt-4 p-4 bg-base-300 rounded-lg">
+              <h3 className="text-md font-semibold mb-2">Update Configuration (ID: {selectedConfig.id})</h3>
+              <form onSubmit={handleUpdateSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Target Date</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      value={selectedConfig.targetDate}
+                      onChange={(e) => handleConfigChange('targetDate', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Target Label</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      value={selectedConfig.targetLabel}
+                      onChange={(e) => handleConfigChange('targetLabel', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Mail Alert</label>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={selectedConfig.is_mail_alert}
+                      onChange={(e) => handleConfigChange('is_mail_alert', e.target.checked)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Mail Alert Address</label>
+                    <input
+                      type="email"
+                      className="input input-bordered w-full"
+                      value={selectedConfig.mail_alert_address}
+                      onChange={(e) => handleConfigChange('mail_alert_address', e.target.value)}
+                      disabled={!selectedConfig.is_mail_alert}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Mail Alert Contact</label>
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      value={selectedConfig.mail_alert_contact}
+                      onChange={(e) => handleConfigChange('mail_alert_contact', e.target.value)}
+                      disabled={!selectedConfig.is_mail_alert}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={updateLoading}
+                  >
+                    {updateLoading ? (
+                      <span className="loading loading-spinner"></span>
+                    ) : (
+                      'Update Configuration'
+                    )}
+                  </button>
+                  {updateSuccess && (
+                    <span className="badge badge-success">Updated Successfully!</span>
+                  )}
+                </div>
+              </form>
             </div>
           )}
         </div>

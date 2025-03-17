@@ -32,4 +32,21 @@ async function getActiveConfigurations() {
   }
 }
 
-module.exports = { getActiveConfigurations };
+async function updateConfiguration(id, updatedFields) {
+  try {
+    const result = await ActiveConfigurationModel.updateOne(
+      { id },
+      { $set: updatedFields }
+    );
+    if (result.nModified === 0) {
+      throw new Error('Configuration not found or no changes made');
+    }
+    console.info(`Configuration ${id} updated successfully`);
+    return await ActiveConfigurationModel.findOne({ id });
+  } catch (error) {
+    console.error('Error updating configuration:', error);
+    throw error;
+  }
+}
+
+module.exports = { getActiveConfigurations, updateConfiguration };
