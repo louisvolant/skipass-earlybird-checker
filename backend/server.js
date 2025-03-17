@@ -11,7 +11,7 @@ const scheduler = require('./cron/scheduler');
 const app = express();
 
 // Initialize apicache with a 1 hour cache duration
-const cache = apicache.middleware('1 minute');
+const cache = apicache.middleware('1 minute', (req, res) => req.method === 'GET'); // Only cache GET requests
 
 app.use(express.json());
 app.use(cors({
