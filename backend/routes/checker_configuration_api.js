@@ -14,10 +14,12 @@ router.get('/get-checker-configuration', async (req, res) => {
       success: true,
       configurations: configurations.map(config => ({
         id: config.id,
+        is_active: config.is_active,
         targetDate: config.target_date,
         targetLabel: config.target_label,
         is_mail_alert: !!config.is_mail_alert,
-        mail_alert_address: maskEmail(config.mail_alert_address)
+        mail_alert_address: maskEmail(config.mail_alert_address),
+        mail_alert_contact: config.mail_alert_contact
       })),
     });
   } catch (error) {
@@ -30,7 +32,7 @@ router.get('/get-checker-configuration', async (req, res) => {
 
 router.post('/update-checker-configuration', async (req, res) => {
   try {
-    const { id, targetDate, targetLabel, is_mail_alert, mail_alert_address, mail_alert_contact } = req.body;
+    const { id, is_active, targetDate, targetLabel, is_mail_alert, mail_alert_address, mail_alert_contact } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -40,17 +42,19 @@ router.post('/update-checker-configuration', async (req, res) => {
     }
 
     const updatedConfig = await updateConfiguration(id, {
+      is_active,
       target_date: targetDate,
       target_label: targetLabel,
       is_mail_alert,
       mail_alert_address,
-      mail_alert_contact
+      mail_alert_contact,
     });
 
     res.json({
       success: true,
       configuration: {
         id: updatedConfig.id,
+        is_active: updatedConfig.is_active,
         targetDate: updatedConfig.target_date,
         targetLabel: updatedConfig.target_label,
         is_mail_alert: !!updatedConfig.is_mail_alert,

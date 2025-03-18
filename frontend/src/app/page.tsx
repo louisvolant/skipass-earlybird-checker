@@ -176,6 +176,7 @@ export default function Home() {
     setUpdateLoading(true);
     try {
       await updateCheckerConfiguration(selectedConfig.id, {
+        is_active: selectedConfig.is_active,
         targetDate: selectedConfig.targetDate,
         targetLabel: selectedConfig.targetLabel,
         is_mail_alert: selectedConfig.is_mail_alert,
@@ -366,7 +367,6 @@ export default function Home() {
         )}
 
         {/* Checker Configuration Section */}
-
         <div className="mt-6 bg-base-200 p-4 rounded-lg">
           <h2 className="text-lg font-semibold mb-2">Checker Configuration</h2>
           {isConfigsLoading ? (
@@ -376,32 +376,9 @@ export default function Home() {
           ) : (
             <div className="overflow-x-auto">
               <table className="table w-full">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Target Date</th>
-                    <th>Target Label</th>
-                    <th>Mail Alert</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>ID</th><th>Active</th><th>Target Date</th><th>Target Label</th><th>Mail Alert</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {configurations.map((config) => (
-                    <tr key={`config-${config.id}`}>
-                      <td>{config.id}</td>
-                      <td>{config.targetDate}</td>
-                      <td>{config.targetLabel}</td>
-                      <td>{config.is_mail_alert ? 'Yes' : 'No'}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline btn-accent"
-                          onClick={() => handleUpdateClick(config)}
-                        >
-                          Update
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {configurations.map((config) => (<tr key={`config-${config.id}`}><td>{config.id}</td><td>{config.is_active ? 'Yes' : 'No'}</td><td>{config.targetDate}</td><td>{config.targetLabel}</td><td>{config.is_mail_alert ? 'Yes' : 'No'}</td><td><button className="btn btn-sm btn-outline btn-accent" onClick={() => handleUpdateClick(config)}>Update</button></td></tr>))}
                 </tbody>
               </table>
             </div>
@@ -412,7 +389,19 @@ export default function Home() {
             <div className="mt-4 p-4 bg-base-300 rounded-lg">
               <h3 className="text-md font-semibold mb-4">Update Configuration (ID: {selectedConfig.id})</h3>
               <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+                  {/* First Row */}
+                  <div className="form-control space-y-2">
+                    <label className="label">
+                      <span className="label-text">Active</span>
+                    </label>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={selectedConfig.is_active}
+                      onChange={(e) => handleConfigChange('is_active', e.target.checked)}
+                    />
+                  </div>
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text">Target Date</span>
@@ -435,7 +424,10 @@ export default function Home() {
                       onChange={(e) => handleConfigChange('targetLabel', e.target.value)}
                     />
                   </div>
-                  <div className="form-control">
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+                  {/* Second Row */}
+                  <div className="form-control space-y-2">
                     <label className="label">
                       <span className="label-text">Mail Alert</span>
                     </label>
@@ -480,7 +472,9 @@ export default function Home() {
               </form>
             </div>
           )}
+
         </div>
+
       </main>
     </div>
   );

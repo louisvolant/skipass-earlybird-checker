@@ -15,6 +15,7 @@ export interface Check {
 
 export interface CheckerConfiguration {
   id: number;
+  is_active: boolean;
   targetDate: string;
   targetLabel: string;
   is_mail_alert: boolean;
