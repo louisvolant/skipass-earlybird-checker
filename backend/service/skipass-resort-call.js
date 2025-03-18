@@ -1,4 +1,3 @@
-// service/skipass-resort-call.js
 const axios = require('axios');
 const htmlparser2 = require('htmlparser2');
 const { getActiveConfigurations } = require('../service/checker-configuration-service');
@@ -23,7 +22,6 @@ async function performCheckForConfig(config) {
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
 
-    let bodyText = '';
     let productRows = [];
     let currentProductRow = null;
     let currentLinkText = '';
@@ -34,12 +32,9 @@ async function performCheckForConfig(config) {
 
     const parser = new htmlparser2.Parser({
       onopentag(name, attribs) {
-        if (name === 'body') {
-          // Start collecting body text
-        }
         if (attribs.class?.includes('product-row')) {
           insideProductRow = true;
-          currentProductRow = { linkText: '', buttonText: '' };
+          currentProductRow = { linkText: '', buttonText: '' }; // Reset for each product row
         }
         if (insideProductRow && attribs.class?.includes('product-row__link')) {
           insideLink = true;
@@ -51,50 +46,47 @@ async function performCheckForConfig(config) {
         }
       },
       ontext(text) {
-        bodyText += text; // Collect all text within body
-        if (insideLink) currentLinkText += text;
-        if (insideButton) currentButtonText += text;
+        if (insideLink) currentLinkText += text.trim();
+        if (insideButton) currentButtonText += text.trim();
       },
       onclosetag(name) {
-        if (name === 'body') {
-          // End of body
+        if (insideProductRow && name === 'a' && insideLink) {
+          insideLink = false;
+          if (currentProductRow) currentProductRow.linkText = currentLinkText;
         }
-        if (insideProductRow && name === 'div' && !insideLink && !insideButton) {
+        if (insideProductRow && name === 'span' && insideButton) {
+          insideButton = false;
+          if (currentProductRow) currentProductRow.buttonText = currentButtonText;
+        }
+        if (name === 'div' && insideProductRow && !insideLink && !insideButton) {
           insideProductRow = false;
-          if (currentProductRow) {
-            currentProductRow.linkText = currentLinkText.trim();
-            currentProductRow.buttonText = currentButtonText.trim();
+          if (currentProductRow && currentProductRow.linkText && currentProductRow.buttonText) {
             productRows.push(currentProductRow);
-            currentProductRow = null;
           }
+          currentProductRow = null;
         }
-        if (insideLink && name === 'a') insideLink = false;
-        if (insideButton && name === 'span') insideButton = false;
       },
     });
 
     parser.write(response.data);
     parser.end();
 
-    const found = bodyText.toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Parsed Product Rows:', productRows); // Debug output
+
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
+    const productRow = productRows.find(
+      (row) => row.linkText.toLowerCase() === searchTerm.toLowerCase()
+    );
 
-    if (found) {
+    if (productRow) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
-      const productRow = productRows.find(
-        (row) => row.linkText.toLowerCase() === searchTerm.toLowerCase()
-      );
-
-      let price = null;
-      if (productRow) {
-        const priceMatch = productRow.buttonText.match(/€[\d.]+/);
-        price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
-      }
+      const priceMatch = productRow.buttonText.match(/€[\d.]+/);
+      const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
 
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, price, response.data);
       return { found: true, price };
     } else {
-      console.log(`[${new Date().toISOString()}] "${searchTerm}" not found for date ${dateToCheck}.`);
+      console.log(`[${new Date().toISOString()}] "${searchTerm}" not found in product rows for date ${dateToCheck}.`);
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, null, response.data);
       return { found: false, price: null };
     }
