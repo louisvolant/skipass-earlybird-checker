@@ -163,10 +163,11 @@ export default function Home() {
   const selectedCheck = checks.find(check => check.id === selectedCheckId);
 
 
-  const handleUpdateClick = (config: CheckerConfiguration) => {
-    setSelectedConfig(config);
-    setUpdateSuccess(false);
-  };
+    const handleUpdateClick = (config: CheckerConfiguration) => {
+      console.log('Selected Config:', config);
+      setSelectedConfig(config);
+      setUpdateSuccess(false);
+    };
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,11 +410,13 @@ export default function Home() {
           {/* Update Form */}
           {selectedConfig && (
             <div className="mt-4 p-4 bg-base-300 rounded-lg">
-              <h3 className="text-md font-semibold mb-2">Update Configuration (ID: {selectedConfig.id})</h3>
-              <form onSubmit={handleUpdateSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Target Date</label>
+              <h3 className="text-md font-semibold mb-4">Update Configuration (ID: {selectedConfig.id})</h3>
+              <form onSubmit={handleUpdateSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Target Date</span>
+                    </label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
@@ -421,8 +424,10 @@ export default function Home() {
                       onChange={(e) => handleConfigChange('targetDate', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="label">Target Label</label>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Target Label</span>
+                    </label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
@@ -430,8 +435,10 @@ export default function Home() {
                       onChange={(e) => handleConfigChange('targetLabel', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className="label">Mail Alert</label>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Mail Alert</span>
+                    </label>
                     <input
                       type="checkbox"
                       className="toggle"
@@ -439,8 +446,10 @@ export default function Home() {
                       onChange={(e) => handleConfigChange('is_mail_alert', e.target.checked)}
                     />
                   </div>
-                  <div>
-                    <label className="label">Mail Alert Address</label>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Mail Alert Address</span>
+                    </label>
                     <input
                       type="email"
                       className="input input-bordered w-full"
@@ -449,32 +458,24 @@ export default function Home() {
                       disabled={!selectedConfig.is_mail_alert}
                     />
                   </div>
-                  <div>
-                    <label className="label">Mail Alert Contact</label>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Mail Alert Contact</span>
+                    </label>
                     <input
                       type="text"
                       className="input input-bordered w-full"
-                      value={selectedConfig.mail_alert_contact}
+                      value={selectedConfig.mail_alert_contact || ''}
                       onChange={(e) => handleConfigChange('mail_alert_contact', e.target.value)}
                       disabled={!selectedConfig.is_mail_alert}
                     />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={updateLoading}
-                  >
-                    {updateLoading ? (
-                      <span className="loading loading-spinner"></span>
-                    ) : (
-                      'Update Configuration'
-                    )}
+                  <button type="submit" className="btn btn-primary" disabled={updateLoading}>
+                    {updateLoading ? <span className="loading loading-spinner"></span> : 'Update Configuration'}
                   </button>
-                  {updateSuccess && (
-                    <span className="badge badge-success">Updated Successfully!</span>
-                  )}
+                  {updateSuccess && <span className="badge badge-success">Updated Successfully!</span>}
                 </div>
               </form>
             </div>
