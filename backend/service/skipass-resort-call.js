@@ -34,7 +34,7 @@ async function performCheckForConfig(config) {
       onopentag(name, attribs) {
         if (attribs.class?.includes('product-row')) {
           insideProductRow = true;
-          currentProductRow = { linkText: '', buttonText: '' }; // Reset for each product row
+          currentProductRow = { linkText: '', buttonText: '' };
         }
         if (insideProductRow && attribs.class?.includes('product-row__link')) {
           insideLink = true;
@@ -46,17 +46,24 @@ async function performCheckForConfig(config) {
         }
       },
       ontext(text) {
-        if (insideLink) currentLinkText += text.trim();
-        if (insideButton) currentButtonText += text.trim();
+        const trimmedText = text.trim();
+        if (insideLink && trimmedText) currentLinkText += trimmedText;
+        if (insideButton && trimmedText) currentButtonText += trimmedText;
       },
       onclosetag(name) {
         if (insideProductRow && name === 'a' && insideLink) {
           insideLink = false;
-          if (currentProductRow) currentProductRow.linkText = currentLinkText;
+          if (currentProductRow) {
+            currentProductRow.linkText = currentLinkText.trim();
+            console.log(`Captured linkText: "${currentProductRow.linkText}"`);
+          }
         }
         if (insideProductRow && name === 'span' && insideButton) {
           insideButton = false;
-          if (currentProductRow) currentProductRow.buttonText = currentButtonText;
+          if (currentProductRow) {
+            currentProductRow.buttonText = currentButtonText.trim();
+            console.log(`Captured buttonText: "${currentProductRow.buttonText}"`);
+          }
         }
         if (name === 'div' && insideProductRow && !insideLink && !insideButton) {
           insideProductRow = false;
@@ -71,7 +78,8 @@ async function performCheckForConfig(config) {
     parser.write(response.data);
     parser.end();
 
-    console.log('Parsed Product Rows:', productRows); // Debug output
+    console.log('Parsed Product Rows:', productRows);
+    console.log('Search Term (lowercase):', searchTerm.toLowerCase());
 
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const productRow = productRows.find(
@@ -82,6 +90,7 @@ async function performCheckForConfig(config) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
       const priceMatch = productRow.buttonText.match(/€[\d.]+/);
       const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
+      console.log(`Extracted Price: ${price}`);
 
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, price, response.data);
       return { found: true, price };
