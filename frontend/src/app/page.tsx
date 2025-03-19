@@ -48,17 +48,17 @@ export default function Home() {
     }
   };
 
-  const handleForceCheck = async () => {
-    setLoading(true);
-    try {
-      await forceCheck();
-      await Promise.all([fetchChecks(), fetchConfigurations()]);
-    } catch (error) {
-      console.error('Failed to force check:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleForceCheck = async () => {
+      setLoading(true);
+      try {
+        await forceCheck();
+        await Promise.all([fetchChecks(), fetchConfigurations()]);
+      } catch (error) {
+        console.error('Failed to force check:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -289,8 +289,8 @@ export default function Home() {
                       </button>
                     </td>
                     <td>{check.price || '-'}</td>
-                    <td>
-                      <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'}`}>
+                    <td className="text-center">
+                      <span className={`badge ${check.hasContent ? 'badge-success' : 'badge-error'} w-full inline-block whitespace-nowrap overflow-hidden text-ellipsis`}>
                         {check.hasContent ? 'Found' : 'Not Found'}
                       </span>
                     </td>

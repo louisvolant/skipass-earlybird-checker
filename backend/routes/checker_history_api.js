@@ -108,19 +108,22 @@ router.post('/delete-check-content', async (req, res) => {
 router.post('/force-check', async (req, res) => {
   try {
     console.log('Manual check requested...');
-
     const checkResults = await checkSkiPassStation();
+    console.log('Check results obtained:', checkResults);
+
     const mailResult = await sendMail(checkResults);
+    console.log('Mail sending completed:', mailResult);
 
     if (mailResult.error) {
       return res.status(500).json({
         success: false,
         message: 'Check failed',
-        error: result.error,
+        error: mailResult.error,
       });
     }
 
     apicache.clear('/api/get-checks');
+    console.log('Cache cleared, sending response...');
 
     res.json({
       success: true,
