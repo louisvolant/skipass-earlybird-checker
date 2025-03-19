@@ -8,8 +8,10 @@ const apicache = require('apicache');
 
 // Route to get active checker configurations
 router.get('/get-checker-configuration', async (req, res) => {
+  console.log('GET /api/get-checker-configuration called');
   try {
     const configurations = await getActiveConfigurations();
+    console.log('Configurations retrieved:', configurations.length, 'items');
     res.json({
       success: true,
       configurations: configurations.map(config => ({
@@ -23,6 +25,7 @@ router.get('/get-checker-configuration', async (req, res) => {
       })),
     });
   } catch (error) {
+    console.error('Error fetching configurations:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch checker configurations',

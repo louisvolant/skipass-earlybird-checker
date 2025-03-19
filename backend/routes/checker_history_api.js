@@ -8,8 +8,10 @@ const { sendMail } = require('../service/mailer-service');
 const apicache = require('apicache');
 
 router.get('/get-checks', async (req, res) => {
+  console.log('GET /api/get-checks called');
   try {
     const checkList = await getCheckList();
+    console.log('Check list retrieved:', checkList.length, 'items');
 
     const formattedData = checkList.map(check => ({
       id: check.id,

@@ -14,7 +14,7 @@ export async function getLastChecks() {
     const response = await api.get('/api/get-checks');
     return response.data.checks;
   } catch (error) {
-    console.error('Error fetching checks:', error);
+    console.error('Error fetching checks:', error.response?.status, error.message, error.config);
     throw error;
   }
 }
@@ -51,10 +51,10 @@ export async function forceCheck() {
 
 export async function getCheckerConfiguration() {
   try {
-    const response = await api.get(`/api/get-checker-configuration`);
+    const response = await api.get('/api/get-checker-configuration');
     return response.data;
   } catch (error) {
-    console.error('Error fetching checker configuration:', error);
+    console.error('Error fetching checker config:', error.response?.status, error.message, error.config);
     throw error;
   }
 }

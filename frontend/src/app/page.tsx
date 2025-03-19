@@ -24,29 +24,33 @@ export default function Home() {
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const checksPerPage = 10;
 
-  const fetchChecks = async () => {
-    try {
-      setIsChecksLoading(true);
-      const data = await getLastChecks();
-      setChecks(data);
-    } catch (error) {
-      console.error('Failed to fetch checks:', error);
-    } finally {
-      setIsChecksLoading(false);
-    }
-  };
+    const fetchChecks = async () => {
+      try {
+        console.log('Fetching checks...');
+        setIsChecksLoading(true);
+        const data = await getLastChecks();
+        console.log('Checks fetched:', data);
+        setChecks(data);
+      } catch (error) {
+        console.error('Failed to fetch checks:', error);
+      } finally {
+        setIsChecksLoading(false);
+      }
+    };
 
-  const fetchConfigurations = async () => {
-    try {
-      setIsConfigsLoading(true);
-      const response = await getCheckerConfiguration();
-      setConfigurations(response.success ? response.configurations || [] : []);
-    } catch (error) {
-      console.error('Failed to fetch configurations:', error);
-    } finally {
-      setIsConfigsLoading(false);
-    }
-  };
+    const fetchConfigurations = async () => {
+      try {
+        console.log('Fetching configurations...');
+        setIsConfigsLoading(true);
+        const response = await getCheckerConfiguration();
+        console.log('Configurations fetched:', response);
+        setConfigurations(response.success ? response.configurations || [] : []);
+      } catch (error) {
+        console.error('Failed to fetch configurations:', error);
+      } finally {
+        setIsConfigsLoading(false);
+      }
+    };
 
     const handleForceCheck = async () => {
       setLoading(true);
