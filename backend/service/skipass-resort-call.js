@@ -53,17 +53,11 @@ async function performCheckForConfig(config) {
       onclosetag(name) {
         if (insideProductRow && name === 'a' && insideLink) {
           insideLink = false;
-          if (currentProductRow) {
-            currentProductRow.linkText = currentLinkText.trim();
-            console.log(`Captured linkText: "${currentProductRow.linkText}"`);
-          }
+          if (currentProductRow) currentProductRow.linkText = currentLinkText.trim();
         }
         if (insideProductRow && name === 'span' && insideButton) {
           insideButton = false;
-          if (currentProductRow) {
-            currentProductRow.buttonText = currentButtonText.trim();
-            console.log(`Captured buttonText: "${currentProductRow.buttonText}"`);
-          }
+          if (currentProductRow) currentProductRow.buttonText = currentButtonText.trim();
         }
         if (name === 'div' && insideProductRow && !insideLink && !insideButton) {
           insideProductRow = false;
@@ -78,9 +72,6 @@ async function performCheckForConfig(config) {
     parser.write(response.data);
     parser.end();
 
-    console.log('Parsed Product Rows:', productRows);
-    console.log('Search Term (lowercase):', searchTerm.toLowerCase());
-
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const productRow = productRows.find(
       (row) => row.linkText.toLowerCase() === searchTerm.toLowerCase()
@@ -88,9 +79,18 @@ async function performCheckForConfig(config) {
 
     if (productRow) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
-      const priceMatch = productRow.buttonText.match(/€[\d.]+/);
-      const price = priceMatch ? parseFloat(priceMatch[0].replace('€', '')) : null;
-      console.log(`Extracted Price: ${price}`);
+      console.log(`Raw buttonText: "${productRow.buttonText}"`);
+
+      // Improved price extraction
+      const priceMatch = productRow.buttonText.match(/€(\d+(?:[.,]\d{1,2})?)/);
+      let price = null;
+      if (priceMatch) {
+        // Replace comma with dot for consistent parsing, then convert to float
+        price = parseFloat(priceMatch[1].replace(',', '.'));
+        console.log(`Extracted Price: €${price}`);
+      } else {
+        console.warn(`Price not found in buttonText: "${productRow.buttonText}"`);
+      }
 
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, price, response.data);
       return { found: true, price };
