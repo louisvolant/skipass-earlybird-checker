@@ -1,12 +1,12 @@
 // src/lib/api.ts
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { CheckerConfiguration } from '../lib/types';
 
 console.log('BACKEND_URL:', process.env.BACKEND_URL);
 
 const api = axios.create({
   baseURL: process.env.BACKEND_URL,
-  withCredentials: true
+  withCredentials: true,
 });
 
 export async function getLastChecks() {
@@ -14,7 +14,19 @@ export async function getLastChecks() {
     const response = await api.get('/api/get-checks');
     return response.data.checks;
   } catch (error) {
-    console.error('Error fetching checks:', error.response?.status, error.message, error.config);
+    // Type assertion or type guard for AxiosError
+    if (error instanceof Error) {
+      // Check if it's an AxiosError
+      const axiosError = error as AxiosError;
+      console.error(
+        'Error fetching checks:',
+        axiosError.response?.status,
+        axiosError.message,
+        axiosError.config
+      );
+    } else {
+      console.error('Error fetching checks:', error);
+    }
     throw error;
   }
 }
@@ -51,10 +63,21 @@ export async function forceCheck() {
 
 export async function getCheckerConfiguration() {
   try {
-    const response = await api.get('/api/get-checker-configuration');
+    const response = await api.get(`/api/get-checker-configuration`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching checker config:', error.response?.status, error.message, error.config);
+    // Type assertion or type guard for AxiosError
+    if (error instanceof Error) {
+      const axiosError = error as AxiosError;
+      console.error(
+        'Error fetching checker config:',
+        axiosError.response?.status,
+        axiosError.message,
+        axiosError.config
+      );
+    } else {
+      console.error('Error fetching checker config:', error);
+    }
     throw error;
   }
 }
@@ -63,7 +86,7 @@ export async function updateCheckerConfiguration(configId: number, updatedConfig
   try {
     const response = await api.post('/api/update-checker-configuration', {
       id: configId,
-      ...updatedConfig
+      ...updatedConfig,
     });
     return response.data;
   } catch (error) {
