@@ -36,7 +36,7 @@ async function performCheckForConfig(config) {
           insideProductRow = true;
           currentProductRow = { linkText: '', buttonText: '' };
         }
-        if (insideProductRow && attribs.class?.includes('product-row__link')) {
+        if (insideProductRow && name === 'a' && attribs.class?.includes('product-row__link')) {
           insideLink = true;
           currentLinkText = '';
         }
@@ -47,8 +47,14 @@ async function performCheckForConfig(config) {
       },
       ontext(text) {
         const trimmedText = text.trim();
-        if (insideLink && trimmedText) currentLinkText += trimmedText;
-        if (insideButton && trimmedText) currentButtonText += trimmedText;
+        if (insideLink && trimmedText) {
+          currentLinkText += trimmedText;
+          console.log(`Link Text: ${currentLinkText}`);
+        }
+        if (insideButton && trimmedText) {
+          currentButtonText += trimmedText;
+          console.log(`Button Text: ${currentButtonText}`);
+        }
       },
       onclosetag(name) {
         if (insideProductRow && name === 'a' && insideLink) {
@@ -60,21 +66,26 @@ async function performCheckForConfig(config) {
           if (currentProductRow) currentProductRow.buttonText = currentButtonText.trim();
         }
         if (name === 'div' && insideProductRow && !insideLink && !insideButton) {
-          insideProductRow = false;
-          if (currentProductRow && currentProductRow.linkText && currentProductRow.buttonText) {
-            productRows.push(currentProductRow);
+          const classes = parser._tokenizer._attributes?.class || '';
+          if (classes.includes('product-row')) {
+            insideProductRow = false;
+            if (currentProductRow && currentProductRow.linkText && currentProductRow.buttonText) {
+              productRows.push(currentProductRow);
+            }
+            currentProductRow = null;
           }
-          currentProductRow = null;
         }
       },
     });
 
+    console.log(`Response data length: ${response.data.length}`);
     parser.write(response.data);
     parser.end();
+    console.log('Parsed product rows:', productRows);
 
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const productRow = productRows.find(
-      (row) => row.linkText.toLowerCase() === searchTerm.toLowerCase()
+      (row) => row.linkText.toLowerCase().trim() === searchTerm.toLowerCase().trim()
     );
 
     if (productRow) {
