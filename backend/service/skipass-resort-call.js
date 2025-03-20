@@ -31,23 +31,23 @@ async function performCheckForConfig(config) {
     let insideProductRow = false;
     let insideLink = false;
     let insideButton = false;
-    let divDepth = 0;
 
     const parser = new htmlparser2.Parser({
       onopentag(name, attribs) {
-        if (attribs.class?.includes('product-row')) {
+        if (attribs.class?.includes('product-row') && !insideProductRow) { // Only start a new row if not already in one
           insideProductRow = true;
           currentProductRow = { linkText: '', buttonText: '' };
-          divDepth = 1;
+          console.log('Found product-row');
         }
-        if (name === 'div' && insideProductRow) divDepth++;
         if (insideProductRow && name === 'a' && attribs.class?.includes('product-row__link')) {
           insideLink = true;
           currentLinkText = '';
+          console.log('Found product-row__link');
         }
         if (insideProductRow && attribs.class?.includes('button__text')) {
           insideButton = true;
           currentButtonText = '';
+          console.log('Found button__text');
         }
       },
       ontext(text) {
@@ -55,26 +55,28 @@ async function performCheckForConfig(config) {
         if (insideLink && trimmedText) currentLinkText += trimmedText;
         if (insideButton && trimmedText) currentButtonText += trimmedText;
       },
-      onclosetag(name) {
-        if (insideProductRow && name === 'a' && insideLink) {
-          insideLink = false;
-          if (currentProductRow) currentProductRow.linkText = currentLinkText.trim();
-        }
-        if (insideProductRow && name === 'span' && insideButton) {
-          insideButton = false;
-          if (currentProductRow) currentProductRow.buttonText = currentButtonText.trim();
-        }
-        if (name === 'div' && insideProductRow) {
-          divDepth--;
-          if (divDepth === 0) {
-            insideProductRow = false;
-            if (currentProductRow && currentProductRow.linkText && currentProductRow.buttonText) {
-              productRows.push(currentProductRow);
+        onclosetag(name) {
+          if (insideProductRow && name === 'a' && insideLink) {
+            insideLink = false;
+            if (currentProductRow) {
+              currentProductRow.linkText = currentLinkText.trim();
+              console.log('Closed link, linkText:', currentLinkText.trim());
             }
-            currentProductRow = null;
           }
-        }
-      },
+          if (insideProductRow && name === 'span' && insideButton) {
+            insideButton = false;
+            if (currentProductRow) {
+              currentProductRow.buttonText = currentButtonText.trim();
+              console.log('Closed button, buttonText:', currentButtonText.trim());
+              if (currentProductRow.linkText && currentProductRow.buttonText) {
+                productRows.push(currentProductRow);
+                console.log('Pushed to productRows:', currentProductRow);
+                insideProductRow = false;
+                currentProductRow = null;
+              }
+            }
+          }
+        },
     });
 
     parser.write(response.data);
