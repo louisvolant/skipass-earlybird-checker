@@ -22,6 +22,8 @@ async function performCheckForConfig(config) {
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
 
+    console.log(`Response data length: ${response.data.length}`);
+
     let productRows = [];
     let currentProductRow = null;
     let currentLinkText = '';
@@ -29,13 +31,16 @@ async function performCheckForConfig(config) {
     let insideProductRow = false;
     let insideLink = false;
     let insideButton = false;
+    let divDepth = 0;
 
     const parser = new htmlparser2.Parser({
       onopentag(name, attribs) {
         if (attribs.class?.includes('product-row')) {
           insideProductRow = true;
           currentProductRow = { linkText: '', buttonText: '' };
+          divDepth = 1;
         }
+        if (name === 'div' && insideProductRow) divDepth++;
         if (insideProductRow && name === 'a' && attribs.class?.includes('product-row__link')) {
           insideLink = true;
           currentLinkText = '';
@@ -47,14 +52,8 @@ async function performCheckForConfig(config) {
       },
       ontext(text) {
         const trimmedText = text.trim();
-        if (insideLink && trimmedText) {
-          currentLinkText += trimmedText;
-          console.log(`Link Text: ${currentLinkText}`);
-        }
-        if (insideButton && trimmedText) {
-          currentButtonText += trimmedText;
-          console.log(`Button Text: ${currentButtonText}`);
-        }
+        if (insideLink && trimmedText) currentLinkText += trimmedText;
+        if (insideButton && trimmedText) currentButtonText += trimmedText;
       },
       onclosetag(name) {
         if (insideProductRow && name === 'a' && insideLink) {
@@ -65,9 +64,9 @@ async function performCheckForConfig(config) {
           insideButton = false;
           if (currentProductRow) currentProductRow.buttonText = currentButtonText.trim();
         }
-        if (name === 'div' && insideProductRow && !insideLink && !insideButton) {
-          const classes = parser._tokenizer._attributes?.class || '';
-          if (classes.includes('product-row')) {
+        if (name === 'div' && insideProductRow) {
+          divDepth--;
+          if (divDepth === 0) {
             insideProductRow = false;
             if (currentProductRow && currentProductRow.linkText && currentProductRow.buttonText) {
               productRows.push(currentProductRow);
@@ -78,10 +77,9 @@ async function performCheckForConfig(config) {
       },
     });
 
-    console.log(`Response data length: ${response.data.length}`);
     parser.write(response.data);
     parser.end();
-    console.log('Parsed product rows:', productRows);
+    console.log('Parsed product rows:', JSON.stringify(productRows, null, 2));
 
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const productRow = productRows.find(
@@ -92,11 +90,9 @@ async function performCheckForConfig(config) {
       console.log(`[${new Date().toISOString()}] "${searchTerm}" found for date ${dateToCheck}!`);
       console.log(`Raw buttonText: "${productRow.buttonText}"`);
 
-      // Improved price extraction
       const priceMatch = productRow.buttonText.match(/€(\d+(?:[.,]\d{1,2})?)/);
       let price = null;
       if (priceMatch) {
-        // Replace comma with dot for consistent parsing, then convert to float
         price = parseFloat(priceMatch[1].replace(',', '.'));
         console.log(`Extracted Price: €${price}`);
       } else {
@@ -113,10 +109,12 @@ async function performCheckForConfig(config) {
   } catch (error) {
     console.error(`Error during check for date ${dateToCheck} and label ${searchTerm}:`, error);
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
-    await saveCheckContent(error.response?.status?.toString() || 'unknown', fullUrl, dateToCheck, searchTerm, null, error.message);
+    await saveCheckContent(error.response?.status?.toString() || '0', fullUrl, dateToCheck, searchTerm, null, error.message);
     return { found: false, price: null, error: error.message };
   }
 }
+
+
 
 async function checkSkiPassStation() {
   try {
