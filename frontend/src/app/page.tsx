@@ -4,7 +4,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent, updateCheckerConfiguration } from "@/lib/api";
+import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent, updateCheckerConfiguration, getDBSize } from "@/lib/api";
 import { Check, CheckerConfiguration } from '../lib/types';
 
 
@@ -22,21 +22,24 @@ export default function Home() {
   const [selectedConfig, setSelectedConfig] = useState<CheckerConfiguration | null>(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [dbSize, setDbSize] = useState<string | null>(null);
   const checksPerPage = 10;
 
-    const fetchChecks = async () => {
-      try {
-        console.log('Fetching checks...');
-        setIsChecksLoading(true);
-        const data = await getLastChecks();
-        console.log('Checks fetched:', data);
-        setChecks(data);
-      } catch (error) {
-        console.error('Failed to fetch checks:', error);
-      } finally {
-        setIsChecksLoading(false);
-      }
-    };
+  const fetchChecks = async () => {
+    try {
+      setIsChecksLoading(true);
+      const [checksData, dbUsage] = await Promise.all([
+        getLastChecks(),
+        getDBSize()
+      ]);
+      setChecks(checksData);
+      setDbSize(dbUsage.size);
+    } catch (error) {
+      console.error('Failed to fetch checks or DB size:', error);
+    } finally {
+      setIsChecksLoading(false);
+    }
+  };
 
     const fetchConfigurations = async () => {
       try {
@@ -67,10 +70,16 @@ export default function Home() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchChecks(), fetchConfigurations()]);
+      const [checksData, dbUsage] = await Promise.all([
+        getLastChecks(),
+        getDBSize()
+      ]);
+      setChecks(checksData);
+      setDbSize(dbUsage.size);
+      await fetchConfigurations();
     } catch (error) {
-      console.error('Failed to refresh checks:', error);
-      alert('Failed to refresh checks. Please try again.');
+      console.error('Failed to refresh checks or DB size:', error);
+      alert('Failed to refresh data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -474,6 +483,16 @@ export default function Home() {
                   {updateSuccess && <span className="badge badge-success">Updated Successfully!</span>}
                 </div>
               </form>
+            </div>
+          )}
+
+
+          {/* Add DB Size Display */}
+          {dbSize && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                Total Database Size: <span className="font-semibold">{dbSize}</span>
+              </p>
             </div>
           )}
 

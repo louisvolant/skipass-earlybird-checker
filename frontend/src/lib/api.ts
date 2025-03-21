@@ -94,3 +94,13 @@ export async function updateCheckerConfiguration(configId: number, updatedConfig
     throw error;
   }
 }
+
+export async function getDBSize() {
+  try {
+    const response = await api.get('/api/get-db-usage');
+    return response.data.dbUsage;
+  } catch (error) {
+    console.error('Error fetching DB size:', error);
+    throw error;
+  }
+}
