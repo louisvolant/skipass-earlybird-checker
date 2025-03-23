@@ -3,7 +3,7 @@
   "builds": [
     { "src": "frontend/package.json", "use": "@vercel/next" },
     { "src": "backend/server.js", "use": "@vercel/node" },
-    { "src": "backend/cron/cron.js", "use": "@vercel/node" }
+    { "src": "backend/cron/scheduler.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/backend/server.js" },
@@ -13,7 +13,7 @@
   "crons": [
     {
       "path": "/cron/scheduler",
-      "schedule": "0 3 * * *"
+      "schedule": "0 7 * * *"
     }
   ]
 }
