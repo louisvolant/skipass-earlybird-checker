@@ -488,13 +488,13 @@ export default function Home() {
 
 
           {/* Add DB Size Display */}
-          {dbSize && (
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                Total Database Size: <span className="font-semibold">{dbSize}</span>
-              </p>
-            </div>
-          )}
+            {dbSize && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Total Database Size: <span className="font-semibold">{dbSize || 'N/A'}</span>
+                </p>
+              </div>
+            )}
 
         </div>
 

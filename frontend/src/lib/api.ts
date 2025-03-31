@@ -98,9 +98,9 @@ export async function updateCheckerConfiguration(configId: number, updatedConfig
 export async function getDBSize() {
   try {
     const response = await api.get('/api/get-db-usage');
-    return response.data.dbUsage;
+    return response.data.dbUsage || { size: 'N/A' }; // Fallback if dbUsage is missing
   } catch (error) {
     console.error('Error fetching DB size:', error);
-    throw error;
+    return { size: 'N/A' }; // Graceful fallback
   }
 }

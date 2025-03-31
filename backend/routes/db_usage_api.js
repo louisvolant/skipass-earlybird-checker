@@ -8,13 +8,14 @@ router.get('/get-db-usage', async (req, res) => {
     const dbUsage = await getDbUsage();
     res.json({
       success: true,
-      dbUsage
+      dbUsage,
     });
   } catch (error) {
     console.error('Error in /get-db-usage:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch database usage'
+      error: 'Failed to fetch database usage',
+      message: error.message,
     });
   }
 });
