@@ -410,7 +410,7 @@ export default function Home() {
                     </label>
                     <input
                       type="checkbox"
-                      className="toggle"
+                      className="toggle ml-4"
                       checked={selectedConfig.is_active}
                       onChange={(e) => handleConfigChange('is_active', e.target.checked)}
                     />
@@ -446,7 +446,7 @@ export default function Home() {
                     </label>
                     <input
                       type="checkbox"
-                      className="toggle"
+                      className="toggle ml-4"
                       checked={selectedConfig.is_mail_alert}
                       onChange={(e) => handleConfigChange('is_mail_alert', e.target.checked)}
                     />
@@ -480,22 +480,28 @@ export default function Home() {
                   <button type="submit" className="btn btn-primary" disabled={updateLoading}>
                     {updateLoading ? <span className="loading loading-spinner"></span> : 'Update Configuration'}
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setSelectedConfig(null)} // Close the form
+                    disabled={updateLoading}
+                  >
+                    Cancel
+                  </button>
                   {updateSuccess && <span className="badge badge-success">Updated Successfully!</span>}
                 </div>
               </form>
             </div>
           )}
 
-
           {/* Add DB Size Display */}
-            {dbSize && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-gray-600">
-                  Total Database Size: <span className="font-semibold">{dbSize || 'N/A'}</span>
-                </p>
-              </div>
-            )}
-
+          {dbSize && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-600">
+                Total Database Size: <span className="font-semibold">{dbSize || 'N/A'}</span>
+              </p>
+            </div>
+          )}
         </div>
 
       </main>
