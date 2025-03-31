@@ -4,24 +4,20 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent, getCheckerConfiguration, deleteCheckContent, updateCheckerConfiguration, getDBSize } from "@/lib/api";
-import { Check, CheckerConfiguration } from '../lib/types';
-
+import { getLastChecks, forceCheck, getCheckContent, deleteCheckContent, getDBSize } from '@/lib/api';
+import { Check } from '@/lib/types';
+import CheckerConfiguration from './components/CheckerConfiguration';
+import DBUsage from './components/DBUsage';
 
 export default function Home() {
   const [checks, setChecks] = useState<Check[]>([]);
-  const [configurations, setConfigurations] = useState<CheckerConfiguration[]>([]);
-  const [isChecksLoading, setIsChecksLoading] = useState(true); // Separate loading state for checks
-  const [isConfigsLoading, setIsConfigsLoading] = useState(true); // Separate loading state for configurations
-  const [loading, setLoading] = useState(false); // For button actions
+  const [isChecksLoading, setIsChecksLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Check; direction: 'asc' | 'desc' } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'found' | 'notfound'>('all');
   const [expandedUrls, setExpandedUrls] = useState<{ [key: number]: boolean }>({});
   const [selectedCheckId, setSelectedCheckId] = useState<number | null>(null);
-  const [selectedConfig, setSelectedConfig] = useState<CheckerConfiguration | null>(null);
-  const [updateLoading, setUpdateLoading] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
   const [dbSize, setDbSize] = useState<string | null>(null);
   const checksPerPage = 10;
 
@@ -41,31 +37,17 @@ export default function Home() {
     }
   };
 
-    const fetchConfigurations = async () => {
-      try {
-        console.log('Fetching configurations...');
-        setIsConfigsLoading(true);
-        const response = await getCheckerConfiguration();
-        console.log('Configurations fetched:', response);
-        setConfigurations(response.success ? response.configurations || [] : []);
-      } catch (error) {
-        console.error('Failed to fetch configurations:', error);
-      } finally {
-        setIsConfigsLoading(false);
-      }
-    };
-
-    const handleForceCheck = async () => {
-      setLoading(true);
-      try {
-        await forceCheck();
-        await Promise.all([fetchChecks(), fetchConfigurations()]);
-      } catch (error) {
-        console.error('Failed to force check:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleForceCheck = async () => {
+    setLoading(true);
+    try {
+      await forceCheck();
+      await fetchChecks(); // Only fetch checks here, CheckerConfiguration handles its own data
+    } catch (error) {
+      console.error('Failed to force check:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -76,7 +58,6 @@ export default function Home() {
       ]);
       setChecks(checksData);
       setDbSize(dbUsage.size);
-      await fetchConfigurations();
     } catch (error) {
       console.error('Failed to refresh checks or DB size:', error);
       alert('Failed to refresh data. Please try again.');
@@ -91,9 +72,7 @@ export default function Home() {
     try {
       setLoading(true);
       await deleteCheckContent(checkId);
-      // Remove the deleted check from state
       setChecks(prevChecks => prevChecks.filter(check => check.id !== checkId));
-      // If this was the selected check, clear the selection
       if (selectedCheckId === checkId) {
         setSelectedCheckId(null);
       }
@@ -107,7 +86,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchChecks();
-    fetchConfigurations();
   }, []);
 
   const handleViewContent = async (checkId: number) => {
@@ -133,7 +111,6 @@ export default function Home() {
     }
   };
 
-  // Sorting, filtering, and pagination logic remains unchanged
   const handleSort = (key: keyof Check) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -174,47 +151,6 @@ export default function Home() {
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
   const selectedCheck = checks.find(check => check.id === selectedCheckId);
-
-
-    const handleUpdateClick = (config: CheckerConfiguration) => {
-      console.log('Selected Config:', config);
-      setSelectedConfig(config);
-      setUpdateSuccess(false);
-    };
-
-  const handleUpdateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedConfig) return;
-
-    setUpdateLoading(true);
-    try {
-      await updateCheckerConfiguration(selectedConfig.id, {
-        is_active: selectedConfig.is_active,
-        targetDate: selectedConfig.targetDate,
-        targetLabel: selectedConfig.targetLabel,
-        is_mail_alert: selectedConfig.is_mail_alert,
-        mail_alert_address: selectedConfig.mail_alert_address,
-        mail_alert_contact: selectedConfig.mail_alert_contact
-      });
-      await fetchConfigurations(); // Refresh the table
-      setUpdateSuccess(true);
-      setTimeout(() => {
-        setSelectedConfig(null);
-        setUpdateSuccess(false);
-      }, 2000); // Auto-close after 2 seconds
-    } catch (error) {
-      console.error('Failed to update configuration:', error);
-      alert('Failed to update configuration. Please try again.');
-    } finally {
-      setUpdateLoading(false);
-    }
-  };
-
-  const handleConfigChange = (field: keyof CheckerConfiguration, value: string | boolean) => {
-    if (selectedConfig) {
-      setSelectedConfig({ ...selectedConfig, [field]: value });
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -309,12 +245,12 @@ export default function Home() {
                     </td>
                     <td className="hidden md:table-cell">
                       <div className="flex gap-2">
-                          <button
-                            className="badge badge-outline badge-accent"
-                            onClick={() => handleViewContent(check.id)}
-                          >
-                            {selectedCheckId === check.id ? 'Hide' : 'View'}
-                          </button>
+                        <button
+                          className="badge badge-outline badge-accent"
+                          onClick={() => handleViewContent(check.id)}
+                        >
+                          {selectedCheckId === check.id ? 'Hide' : 'View'}
+                        </button>
                         <button
                           className="badge badge-outline badge-error"
                           onClick={() => handleDeleteCheck(check.id)}
@@ -326,7 +262,7 @@ export default function Home() {
                             'Delete'
                           )}
                         </button>
-                    </div>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -379,131 +315,9 @@ export default function Home() {
           </div>
         )}
 
-        {/* Checker Configuration Section */}
-        <div className="mt-6 bg-base-200 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-2">Checker Configuration</h2>
-          {isConfigsLoading ? (
-            <p className="text-gray-500"><span className="loading loading-spinner"></span> Loading configurations...</p>
-          ) : configurations.length === 0 ? (
-            <p className="text-gray-500">No active configurations found</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table w-full">
-                <thead><tr><th>ID</th><th>Active</th><th>Target Date</th><th>Target Label</th><th>Mail Alert</th><th>Actions</th></tr></thead>
-                <tbody>
-                  {configurations.map((config) => (<tr key={`config-${config.id}`}><td>{config.id}</td><td>{config.is_active ? 'Yes' : 'No'}</td><td>{config.targetDate}</td><td>{config.targetLabel}</td><td>{config.is_mail_alert ? 'Yes' : 'No'}</td><td><button className="btn btn-sm btn-outline btn-accent" onClick={() => handleUpdateClick(config)}>Update</button></td></tr>))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Update Form */}
-          {selectedConfig && (
-            <div className="mt-4 p-4 bg-base-300 rounded-lg">
-              <h3 className="text-md font-semibold mb-4">Update Configuration (ID: {selectedConfig.id})</h3>
-              <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-                  {/* First Row */}
-                  <div className="form-control space-y-2">
-                    <label className="label">
-                      <span className="label-text">Active</span>
-                    </label>
-                    <input
-                      type="checkbox"
-                      className="toggle ml-4"
-                      checked={selectedConfig.is_active}
-                      onChange={(e) => handleConfigChange('is_active', e.target.checked)}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Target Date</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      value={selectedConfig.targetDate}
-                      onChange={(e) => handleConfigChange('targetDate', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Target Label</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      value={selectedConfig.targetLabel}
-                      onChange={(e) => handleConfigChange('targetLabel', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-                  {/* Second Row */}
-                  <div className="form-control space-y-2">
-                    <label className="label">
-                      <span className="label-text">Mail Alert</span>
-                    </label>
-                    <input
-                      type="checkbox"
-                      className="toggle ml-4"
-                      checked={selectedConfig.is_mail_alert}
-                      onChange={(e) => handleConfigChange('is_mail_alert', e.target.checked)}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Mail Alert Address</span>
-                    </label>
-                    <input
-                      type="email"
-                      className="input input-bordered w-full"
-                      value={selectedConfig.mail_alert_address}
-                      onChange={(e) => handleConfigChange('mail_alert_address', e.target.value)}
-                      disabled={!selectedConfig.is_mail_alert}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text">Mail Alert Contact</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered w-full"
-                      value={selectedConfig.mail_alert_contact || ''}
-                      onChange={(e) => handleConfigChange('mail_alert_contact', e.target.value)}
-                      disabled={!selectedConfig.is_mail_alert}
-                    />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center gap-2">
-                  <button type="submit" className="btn btn-primary" disabled={updateLoading}>
-                    {updateLoading ? <span className="loading loading-spinner"></span> : 'Update Configuration'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setSelectedConfig(null)} // Close the form
-                    disabled={updateLoading}
-                  >
-                    Cancel
-                  </button>
-                  {updateSuccess && <span className="badge badge-success">Updated Successfully!</span>}
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Add DB Size Display */}
-          {dbSize && (
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                Total Database Size: <span className="font-semibold">{dbSize || 'N/A'}</span>
-              </p>
-            </div>
-          )}
-        </div>
-
+        {/* Checker Configuration and DB Usage Components */}
+        <CheckerConfiguration />
+        <DBUsage dbSize={dbSize} />
       </main>
     </div>
   );
