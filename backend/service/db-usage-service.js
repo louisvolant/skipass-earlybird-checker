@@ -3,14 +3,24 @@ const mongoose_client = require('../config/mongoose');
 
 async function getDbUsage() {
   try {
+    if (mongoose_client.connection.readyState !== 1) {
+      /**
+      mongoose.connection.readyState values:
+      0 = disconnected
+      1 = connected
+      2 = connecting
+      3 = disconnecting
+      */
+      await mongoose_client.connect();
+    }
+
     const db = mongoose_client.connection.db;
     const stats = await db.stats();
 
-    // Convert bytes to human-readable format (e.g., MB)
     const sizeInMB = (stats.dataSize / (1024 * 1024)).toFixed(2);
     return {
       size: `${sizeInMB} MB`,
-      rawSize: stats.dataSize, // in bytes
+      rawSize: stats.dataSize,
       collections: stats.collections,
       objects: stats.objects
     };
@@ -19,5 +29,6 @@ async function getDbUsage() {
     throw error;
   }
 }
+
 
 module.exports = { getDbUsage };
