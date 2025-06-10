@@ -1,6 +1,6 @@
 // src/app/components/CheckerConfiguration.tsx
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
 import { getCheckerConfiguration, updateCheckerConfiguration, clearCache } from '@/lib/api';
 import { CheckerConfiguration as CheckerConfigType } from '@/lib/types';
 
@@ -12,6 +12,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
   const [configurations, setConfigurations] = useState<CheckerConfigType[]>([]);
   const [isConfigsLoading, setIsConfigsLoading] = useState(true);
   const [selectedConfig, setSelectedConfig] = useState<CheckerConfigType | null>(null);
+  const originalSelectedConfig = useRef<CheckerConfigType | null>(null); // To store the original config
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -38,6 +39,8 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
   const handleUpdateClick = (config: CheckerConfigType) => {
     console.log('Selected Config:', config);
     setSelectedConfig(config);
+    // Store a deep copy of the original config when setting it for update
+    originalSelectedConfig.current = { ...config };
     setUpdateSuccess(false);
     setIsDeactivating(false);
   };
@@ -56,37 +59,57 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedConfig) return;
+    if (!selectedConfig || !originalSelectedConfig.current) return;
 
     setUpdateLoading(true);
-    let payload: Partial<CheckerConfigType>;
+    let payload: Partial<CheckerConfigType> = {}; // Initialize as empty object
 
     // If deactivating, only send `is_active` flag
     if (isDeactivating) {
       payload = { is_active: false };
     } else {
-      // Otherwise, send all fields for a regular update
-      payload = {
-        is_active: selectedConfig.is_active,
-        targetDate: selectedConfig.targetDate,
-        targetLabel: selectedConfig.targetLabel,
-        is_mail_alert: selectedConfig.is_mail_alert,
-        mail_alert_address: selectedConfig.mail_alert_address,
-        mail_alert_contact: selectedConfig.mail_alert_contact,
-      };
+      // Compare current selectedConfig with originalSelectedConfig to find changed fields
+      for (const key in selectedConfig) {
+        if (selectedConfig.hasOwnProperty(key)) {
+          const field = key as keyof CheckerConfigType;
+          // Only add to payload if the value has changed
+          if (selectedConfig[field] !== originalSelectedConfig.current[field]) {
+            // Special handling for mail_alert_contact to ensure empty string is sent if it was null/undefined
+            if (field === 'mail_alert_contact' && selectedConfig[field] === '') {
+              payload[field] = ''; // Explicitly send empty string
+            } else {
+              payload[field] = selectedConfig[field];
+            }
+          }
+        }
+      }
     }
 
+    // Ensure `id` is always excluded from the partial update payload
+    // and that the payload is not empty (unless it's just deactivating)
+    const { id, ...updateData } = payload; // Destructure to remove 'id' from the payload if it somehow got in.
+    if (Object.keys(updateData).length === 0 && !isDeactivating) {
+      // If no changes found and not deactivating, no need to make an API call
+      setUpdateLoading(false);
+      setSelectedConfig(null);
+      setUpdateSuccess(false);
+      setIsDeactivating(false);
+      return;
+    }
+
+
     try {
-      await updateCheckerConfiguration(selectedConfig.id, payload);
-      // After successful update, call the clearCache function from api.ts
-      await clearCache(); // Moved the cache clearing call here
-      await fetchConfigurations(); // Refresh the table
+      // Pass the updateData (which contains only changed fields)
+      await updateCheckerConfiguration(selectedConfig.id, updateData); // Pass updateData instead of payload
+      await clearCache();
+      await fetchConfigurations();
       setUpdateSuccess(true);
       setTimeout(() => {
         setSelectedConfig(null);
+        originalSelectedConfig.current = null; // Clear original config reference
         setUpdateSuccess(false);
-        setIsDeactivating(false); // Reset deactivation state
-      }, 2000); // Auto-close after 2 seconds
+        setIsDeactivating(false);
+      }, 2000);
     } catch (error) {
       console.error('Failed to update configuration:', error);
       alert('Failed to update configuration. Please try again.');
@@ -97,6 +120,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
 
   const handleCancel = () => {
     setSelectedConfig(null);
+    originalSelectedConfig.current = null; // Clear original config reference
     setIsDeactivating(false);
   };
 
