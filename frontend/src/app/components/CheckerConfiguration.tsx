@@ -5,14 +5,14 @@ import { getCheckerConfiguration, updateCheckerConfiguration, clearCache } from 
 import { CheckerConfiguration as CheckerConfigType } from '@/lib/types';
 
 interface CheckerConfigurationProps {
-  onFetchConfigurations?: () => void; // Optional callback to refresh parent state if needed
+  onFetchConfigurations?: () => void;
 }
 
 export default function CheckerConfiguration({ onFetchConfigurations }: CheckerConfigurationProps) {
   const [configurations, setConfigurations] = useState<CheckerConfigType[]>([]);
   const [isConfigsLoading, setIsConfigsLoading] = useState(true);
   const [selectedConfig, setSelectedConfig] = useState<CheckerConfigType | null>(null);
-  const originalSelectedConfig = useRef<CheckerConfigType | null>(null);
+  const originalSelectedConfig = useRef<CheckerConfigType | null>(null); // To store the original config
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -39,7 +39,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
   useEffect(() => {
     // Initial fetch based on the default showActiveOnly state
     fetchConfigurations();
-  }, [showActiveOnly]); // Re-fetch whenever showActiveOnly changes
+  }, [showActiveOnly]);
 
   const handleUpdateClick = (config: CheckerConfigType) => {
     console.log('Selected Config:', config);
@@ -70,21 +70,24 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
     if (isDeactivating) {
       payload = { is_active: false };
     } else {
-      for (const key in selectedConfig) {
-        if (selectedConfig.hasOwnProperty(key)) {
-          const field = key as keyof CheckerConfigType;
+      // Initialize accumulator as Record<string, unknown> to allow dynamic property assignments
+      // during the reduce loop, then assert the final result to Partial<CheckerConfigType>.
+      const changedFields = Object.keys(selectedConfig).reduce((acc: Record<string, unknown>, key) => {
+        if (key === 'id') return acc; // Skip 'id'
 
-          if (field === 'id') continue; // Skip 'id' in comparison
+        const field = key as keyof CheckerConfigType;
+        const currentValue = selectedConfig[field];
+        const originalValue = originalSelectedConfig.current![field];
 
-          const currentValue = selectedConfig[field];
-          const originalValue = originalSelectedConfig.current[field];
-
-          // Compare string representations to handle mixed types (e.g., null vs '')
-          if (String(currentValue) !== String(originalValue)) {
-            payload[field] = currentValue;
-          }
+        // Compare string representations to handle mixed types (e.g., null vs '')
+        if (String(currentValue) !== String(originalValue)) {
+          // Assign directly to the `Record<string, unknown>` typed accumulator
+          acc[field] = currentValue;
         }
-      }
+        return acc;
+      }, {}); // Initial empty object.
+
+      payload = changedFields as Partial<CheckerConfigType>; // Assert the final result
     }
 
     if (Object.keys(payload).length === 0 && !isDeactivating) {
@@ -96,7 +99,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
     }
 
     try {
-      await updateCheckerConfiguration(selectedConfig.id, payload);
+      await updateCheckerConfiguration(selectedConfig.id, payload); // Pass the dynamically built payload
       await clearCache();
       await fetchConfigurations(); // Re-fetch based on current filter
       setUpdateSuccess(true);
