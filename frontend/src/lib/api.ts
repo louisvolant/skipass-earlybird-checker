@@ -95,6 +95,17 @@ export async function updateCheckerConfiguration(configId: number, updatedConfig
   }
 }
 
+export async function clearCache() {
+  try {
+    const response = await api.post('/api/clear-cache');
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    throw error;
+  }
+}
+
+
 export async function getDBSize() {
   try {
     const response = await api.get('/api/get-db-usage');

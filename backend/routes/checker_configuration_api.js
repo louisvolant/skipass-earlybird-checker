@@ -35,7 +35,7 @@ router.get('/get-checker-configuration', async (req, res) => {
 
 router.post('/update-checker-configuration', async (req, res) => {
   try {
-    const { id, is_active, targetDate, targetLabel, is_mail_alert, mail_alert_address, mail_alert_contact } = req.body;
+    const { id, ...updatedFields } = req.body; // Destructure id and collect all other fields
 
     if (!id) {
       return res.status(400).json({
@@ -44,14 +44,31 @@ router.post('/update-checker-configuration', async (req, res) => {
       });
     }
 
-    const updatedConfig = await updateConfiguration(id, {
-      is_active,
-      target_date: targetDate,
-      target_label: targetLabel,
-      is_mail_alert,
-      mail_alert_address,
-      mail_alert_contact,
-    });
+    // Map frontend field names to backend (database) field names
+    const dbFields = {};
+    if (updatedFields.hasOwnProperty('is_active')) {
+      dbFields.is_active = updatedFields.is_active;
+    }
+    if (updatedFields.hasOwnProperty('targetDate')) {
+      dbFields.target_date = updatedFields.targetDate;
+    }
+    if (updatedFields.hasOwnProperty('targetLabel')) {
+      dbFields.target_label = updatedFields.targetLabel;
+    }
+    if (updatedFields.hasOwnProperty('is_mail_alert')) {
+      dbFields.is_mail_alert = updatedFields.is_mail_alert;
+    }
+    if (updatedFields.hasOwnProperty('mail_alert_address')) {
+      dbFields.mail_alert_address = updatedFields.mail_alert_address;
+    }
+    if (updatedFields.hasOwnProperty('mail_alert_contact')) {
+      dbFields.mail_alert_contact = updatedFields.mail_alert_contact;
+    }
+
+    const updatedConfig = await updateConfiguration(id, dbFields); // Pass only the fields that were sent
+
+    // Clear cache for the get-checker-configuration endpoint after an update
+    apicache.clear('/api/get-checker-configuration');
 
     res.json({
       success: true,
@@ -71,6 +88,17 @@ router.post('/update-checker-configuration', async (req, res) => {
       error: 'Failed to update configuration',
       message: error.message
     });
+  }
+});
+
+router.post('/clear-cache', (req, res) => {
+  try {
+    console.log('Clearing cache for /api/get-checker-configuration');
+    apicache.clear('/api/get-checker-configuration');
+    res.json({ success: true, message: 'Cache cleared for /api/get-checker-configuration' });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({ success: false, error: 'Failed to clear cache' });
   }
 });
 

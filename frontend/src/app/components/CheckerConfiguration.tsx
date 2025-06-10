@@ -1,7 +1,7 @@
 // src/app/components/CheckerConfiguration.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
-import { getCheckerConfiguration, updateCheckerConfiguration } from '@/lib/api';
+import { getCheckerConfiguration, updateCheckerConfiguration, clearCache } from '@/lib/api';
 import { CheckerConfiguration as CheckerConfigType } from '@/lib/types';
 
 interface CheckerConfigurationProps {
@@ -14,6 +14,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
   const [selectedConfig, setSelectedConfig] = useState<CheckerConfigType | null>(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const fetchConfigurations = async () => {
     try {
@@ -38,6 +39,19 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
     console.log('Selected Config:', config);
     setSelectedConfig(config);
     setUpdateSuccess(false);
+    setIsDeactivating(false);
+  };
+
+  const handleConfigChange = (field: keyof CheckerConfigType, value: string | boolean) => {
+    if (selectedConfig) {
+      // If the 'is_active' field is being changed, set isDeactivating state
+      if (field === 'is_active' && value === false) {
+        setIsDeactivating(true);
+      } else {
+        setIsDeactivating(false); // Reset if activating or changing other fields
+      }
+      setSelectedConfig({ ...selectedConfig, [field]: value });
+    }
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
@@ -45,20 +59,33 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
     if (!selectedConfig) return;
 
     setUpdateLoading(true);
-    try {
-      await updateCheckerConfiguration(selectedConfig.id, {
+    let payload: Partial<CheckerConfigType>;
+
+    // If deactivating, only send `is_active` flag
+    if (isDeactivating) {
+      payload = { is_active: false };
+    } else {
+      // Otherwise, send all fields for a regular update
+      payload = {
         is_active: selectedConfig.is_active,
         targetDate: selectedConfig.targetDate,
         targetLabel: selectedConfig.targetLabel,
         is_mail_alert: selectedConfig.is_mail_alert,
         mail_alert_address: selectedConfig.mail_alert_address,
         mail_alert_contact: selectedConfig.mail_alert_contact,
-      });
+      };
+    }
+
+    try {
+      await updateCheckerConfiguration(selectedConfig.id, payload);
+      // After successful update, call the clearCache function from api.ts
+      await clearCache(); // Moved the cache clearing call here
       await fetchConfigurations(); // Refresh the table
       setUpdateSuccess(true);
       setTimeout(() => {
         setSelectedConfig(null);
         setUpdateSuccess(false);
+        setIsDeactivating(false); // Reset deactivation state
       }, 2000); // Auto-close after 2 seconds
     } catch (error) {
       console.error('Failed to update configuration:', error);
@@ -68,14 +95,9 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
     }
   };
 
-  const handleConfigChange = (field: keyof CheckerConfigType, value: string | boolean) => {
-    if (selectedConfig) {
-      setSelectedConfig({ ...selectedConfig, [field]: value });
-    }
-  };
-
   const handleCancel = () => {
     setSelectedConfig(null);
+    setIsDeactivating(false);
   };
 
   return (
@@ -148,6 +170,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
                   className="input input-bordered w-full"
                   value={selectedConfig.targetDate}
                   onChange={(e) => handleConfigChange('targetDate', e.target.value)}
+                  disabled={isDeactivating}
                 />
               </div>
               <div className="form-control">
@@ -159,6 +182,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
                   className="input input-bordered w-full"
                   value={selectedConfig.targetLabel}
                   onChange={(e) => handleConfigChange('targetLabel', e.target.value)}
+                  disabled={isDeactivating}
                 />
               </div>
             </div>
@@ -173,6 +197,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
                   className="toggle ml-4"
                   checked={selectedConfig.is_mail_alert}
                   onChange={(e) => handleConfigChange('is_mail_alert', e.target.checked)}
+                  disabled={isDeactivating}
                 />
               </div>
               <div className="form-control">
@@ -184,7 +209,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
                   className="input input-bordered w-full"
                   value={selectedConfig.mail_alert_address}
                   onChange={(e) => handleConfigChange('mail_alert_address', e.target.value)}
-                  disabled={!selectedConfig.is_mail_alert}
+                  disabled={!selectedConfig.is_mail_alert || isDeactivating}
                 />
               </div>
               <div className="form-control">
@@ -196,7 +221,7 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
                   className="input input-bordered w-full"
                   value={selectedConfig.mail_alert_contact || ''}
                   onChange={(e) => handleConfigChange('mail_alert_contact', e.target.value)}
-                  disabled={!selectedConfig.is_mail_alert}
+                  disabled={!selectedConfig.is_mail_alert || isDeactivating}
                 />
               </div>
             </div>

@@ -17,9 +17,7 @@ const ActiveConfigurationModel = mongoose_client.model('checker_configuration', 
 async function getActiveConfigurations() {
   try {
     // Check if data already exists in MongoAtlas
-    const existingData = await ActiveConfigurationModel.find({
-        is_active: true
-    });
+    const existingData = await ActiveConfigurationModel.find({}); // Fetch all, regardless of active status
     if (existingData) {
         console.info('Data (ActiveConfigurationModel) fetched from Internal MongoDB');
     } else {
@@ -34,15 +32,18 @@ async function getActiveConfigurations() {
 
 async function updateConfiguration(id, updatedFields) {
   try {
-    const result = await ActiveConfigurationModel.updateOne(
+    // Use findOneAndUpdate with { new: true } to return the updated document
+    const result = await ActiveConfigurationModel.findOneAndUpdate(
       { id },
-      { $set: updatedFields }
+      { $set: updatedFields },
+      { new: true } // Return the updated document
     );
-    if (result.nModified === 0) {
+
+    if (!result) {
       throw new Error('Configuration not found or no changes made');
     }
     console.info(`Configuration ${id} updated successfully`);
-    return await ActiveConfigurationModel.findOne({ id });
+    return result; // Return the updated document
   } catch (error) {
     console.error('Error updating configuration:', error);
     throw error;
