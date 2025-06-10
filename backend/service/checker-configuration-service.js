@@ -11,43 +11,45 @@ const activeConfigurationSchema = new mongoose_client.Schema({
     mail_alert_address: String,
     mail_alert_contact: String
 });
-const ActiveConfigurationModel = mongoose_client.model('checker_configuration', activeConfigurationSchema, 'checker_configuration'); //Third parameter forces the collection name.
+const ActiveConfigurationModel = mongoose_client.model('checker_configuration', activeConfigurationSchema, 'checker_configuration');
 
-// Helper function to fetch active configurations
-async function getActiveConfigurations() {
+async function getConfigurations(isActiveOnly = true) { // Default to true if not provided
   try {
-    // Check if data already exists in MongoAtlas
-    const existingData = await ActiveConfigurationModel.find({}); // Fetch all, regardless of active status
+    let query = {};
+    if (isActiveOnly) {
+      query = { is_active: true };
+    }
+
+    const existingData = await ActiveConfigurationModel.find(query); // Fetch based on the query
     if (existingData) {
-        console.info('Data (ActiveConfigurationModel) fetched from Internal MongoDB');
+        console.info(`Data (ActiveConfigurationModel) fetched from Internal MongoDB with query: ${JSON.stringify(query)}`);
     } else {
         console.info('No Data (ActiveConfigurationModel) fetched from Internal MongoDB');
     }
     return existingData;
   } catch (error) {
-    console.error('Unexpected error fetching active configurations:', error);
+    console.error('Unexpected error fetching configurations:', error);
     throw error;
   }
 }
 
 async function updateConfiguration(id, updatedFields) {
   try {
-    // Use findOneAndUpdate with { new: true } to return the updated document
     const result = await ActiveConfigurationModel.findOneAndUpdate(
       { id },
       { $set: updatedFields },
-      { new: true } // Return the updated document
+      { new: true }
     );
 
     if (!result) {
       throw new Error('Configuration not found or no changes made');
     }
     console.info(`Configuration ${id} updated successfully`);
-    return result; // Return the updated document
+    return result;
   } catch (error) {
     console.error('Error updating configuration:', error);
     throw error;
   }
 }
 
-module.exports = { getActiveConfigurations, updateConfiguration };
+module.exports = { getConfigurations, updateConfiguration };

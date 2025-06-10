@@ -14,9 +14,7 @@ export async function getLastChecks() {
     const response = await api.get('/api/get-checks');
     return response.data.checks;
   } catch (error) {
-    // Type assertion or type guard for AxiosError
     if (error instanceof Error) {
-      // Check if it's an AxiosError
       const axiosError = error as AxiosError;
       console.error(
         'Error fetching checks:',
@@ -61,12 +59,11 @@ export async function forceCheck() {
   }
 }
 
-export async function getCheckerConfiguration() {
+export async function getCheckerConfiguration(activeOnly: boolean = true) {
   try {
-    const response = await api.get(`/api/get-checker-configuration`);
+    const response = await api.get(`/api/get-checker-configuration?isActiveOnly=${activeOnly}`);
     return response.data;
   } catch (error) {
-    // Type assertion or type guard for AxiosError
     if (error instanceof Error) {
       const axiosError = error as AxiosError;
       console.error(
@@ -105,13 +102,12 @@ export async function clearCache() {
   }
 }
 
-
 export async function getDBSize() {
   try {
     const response = await api.get('/api/get-db-usage');
-    return response.data.dbUsage || { size: 'N/A' }; // Fallback if dbUsage is missing
+    return response.data.dbUsage || { size: 'N/A' };
   } catch (error) {
     console.error('Error fetching DB size:', error);
-    return { size: 'N/A' }; // Graceful fallback
+    return { size: 'N/A' };
   }
 }

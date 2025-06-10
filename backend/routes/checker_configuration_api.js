@@ -1,16 +1,21 @@
 // routes/checker_configuration_api.js
 const express = require('express');
 const router = express.Router();
-const { getActiveConfigurations, updateConfiguration } = require('../service/checker-configuration-service');
+const { getConfigurations, updateConfiguration } = require('../service/checker-configuration-service'); // Renamed getActiveConfigurations to getConfigurations
 const { maskEmail } = require('../utils/mail-utils');
 
 const apicache = require('apicache');
 
-// Route to get active checker configurations
+// Route to get checker configurations
 router.get('/get-checker-configuration', async (req, res) => {
   console.log('GET /api/get-checker-configuration called');
+  // Get the isActiveOnly query parameter, default to 'true' if not present
+  const isActiveOnly = req.query.isActiveOnly === 'true'; // Convert string to boolean
+  console.log('isActiveOnly query param:', isActiveOnly);
+
   try {
-    const configurations = await getActiveConfigurations();
+    // Pass the isActiveOnly flag to the service function
+    const configurations = await getConfigurations(isActiveOnly);
     console.log('Configurations retrieved:', configurations.length, 'items');
     res.json({
       success: true,
@@ -35,7 +40,7 @@ router.get('/get-checker-configuration', async (req, res) => {
 
 router.post('/update-checker-configuration', async (req, res) => {
   try {
-    const { id, ...updatedFields } = req.body; // Destructure id and collect all other fields
+    const { id, ...updatedFields } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -44,7 +49,6 @@ router.post('/update-checker-configuration', async (req, res) => {
       });
     }
 
-    // Map frontend field names to backend (database) field names
     const dbFields = {};
     if (updatedFields.hasOwnProperty('is_active')) {
       dbFields.is_active = updatedFields.is_active;
@@ -65,9 +69,8 @@ router.post('/update-checker-configuration', async (req, res) => {
       dbFields.mail_alert_contact = updatedFields.mail_alert_contact;
     }
 
-    const updatedConfig = await updateConfiguration(id, dbFields); // Pass only the fields that were sent
+    const updatedConfig = await updateConfiguration(id, dbFields);
 
-    // Clear cache for the get-checker-configuration endpoint after an update
     apicache.clear('/api/get-checker-configuration');
 
     res.json({
@@ -101,6 +104,5 @@ router.post('/clear-cache', (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to clear cache' });
   }
 });
-
 
 module.exports = router;
