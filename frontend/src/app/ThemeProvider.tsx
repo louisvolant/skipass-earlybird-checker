@@ -17,17 +17,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initialTheme = savedTheme ? savedTheme === 'dark' : prefersDark;
+
     setDarkMode(initialTheme);
+
+    // Apply both class & attribute data-theme
+    const themeName = initialTheme ? 'dark' : 'light';
     document.documentElement.classList.toggle('dark', initialTheme);
-    console.log('Initial theme:', initialTheme ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', themeName);
+
   }, []);
 
   const toggleDarkMode = () => {
     setDarkMode((prev) => {
       const newMode = !prev;
+      const themeName = newMode ? 'dark' : 'light';
       document.documentElement.classList.toggle('dark', newMode);
-      localStorage.setItem('theme', newMode ? 'dark' : 'light');
-      console.log('Toggled to:', newMode ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', themeName);
+
+      localStorage.setItem('theme', themeName);
       return newMode;
     });
   };
@@ -41,8 +48,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 }

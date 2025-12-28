@@ -1,12 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* frontend/src/app/globals.css */
+@import "tailwindcss";
 
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
+/* 1. Load DaisyUI 5 */
+/* The 'themes' option tells DaisyUI to generate CSS variables for both light and dark modes */
+@plugin "daisyui" {
+  themes: light, dark;
 }
 
-body {
-  @apply bg-base-100 text-base-content; /* Use DaisyUI's base colors */
-  font-family: Arial, Helvetica, sans-serif;
+/* 2. Tailwind CSS 4 Dark Mode Configuration */
+/* Enables 'dark:' utility classes (e.g., dark:bg-slate-900) to work alongside DaisyUI themes */
+@custom-variant dark (&:where(.dark, [data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  /* Map custom Next.js CSS variables to the Tailwind theme system */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+/* 3. Default Next.js variables */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* 4. Global Styles */
+@layer base {
+  body {
+    @apply bg-base-100 text-base-content antialiased;
+    font-family: Arial, Helvetica, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
 }
