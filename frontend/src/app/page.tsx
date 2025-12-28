@@ -154,23 +154,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="navbar bg-base-100 shadow-lg">
-        <div className="navbar-start">
-          <div className="flex items-center px-4">
-            <Image src="/icon.png" alt="SkiPass Checker Logo" width={40} height={40} className="mr-2" />
-            <Link href="/" className="text-xl font-bold">Skipass EarlyBird Checker</Link>
-          </div>
-        </div>
-        <div className="navbar-end">
-          <button className="btn btn-info mr-2" onClick={handleRefresh} disabled={loading}>
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center p-4 bg-base-100 shadow-lg">
+        <Link href="/" className="flex items-center space-x-2 mb-4 md:mb-0">
+          <Image
+            src="/icon.png"
+            alt="SkiPass Checker Logo"
+            width={40}
+            height={40}
+          />
+          <span className="text-xl font-bold">Skipass EarlyBird Checker</span>
+        </Link>
+
+        <div className="flex items-center space-x-2 self-end md:self-auto">
+          <button className="btn btn-info" onClick={handleRefresh} disabled={loading} >
             {loading ? (
               <span className="loading loading-spinner"></span>
             ) : (
               'Refresh'
             )}
           </button>
-          <button className="btn btn-warning mr-4" onClick={handleForceCheck} disabled={loading}>
-            {loading ? <span className="loading loading-spinner"></span> : 'Force Check'}
+          <button className="btn btn-warning" onClick={handleForceCheck} disabled={loading} >
+            {loading ? ( <span className="loading loading-spinner"></span> ) : ( 'Force Check' )}
           </button>
         </div>
       </header>
