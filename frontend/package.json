@@ -12,9 +12,9 @@
     "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
-    "next": "^15.5.7",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
+    "next": "^15.5.9",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "recharts": "^2.15.1"
   },
   "devDependencies": {
