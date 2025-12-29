@@ -1,4 +1,5 @@
-// lib/types.ts
+// src/lib/types.ts
+
 export interface Check {
   id: number;
   timestamp: string;
