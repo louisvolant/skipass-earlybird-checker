@@ -27,8 +27,17 @@ The app is a single Next.js project. The checker logic, MongoDB persistence, Mai
 
 ## Requirements
 
-- Node.js 18 or higher
+- Node.js 20.9 or higher (Next.js 16 requirement; developed against Node 24 LTS)
 - npm (comes with Node.js)
+
+## Tech Stack
+
+- **Next.js 16.3.1** (App Router)
+- **React 19.2 / React DOM 19.2**
+- **TypeScript 6.0.3** (pinned below 7.0 because `typescript-eslint` requires `<6.1.0`)
+- **ESLint 9 + eslint-config-next 16.3.1**
+- **Tailwind CSS 4 + daisyUI 5**
+- **MongoDB (Mongoose 8)**, **Mailjet**, **recharts**
 
 ## Installation
 
