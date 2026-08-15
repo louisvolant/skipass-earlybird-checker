@@ -1,18 +1,20 @@
 {
-  "name": "frontend",
+  "name": "skipass-earlybird-checker",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.7.9",
-    "dotenv": "^16.4.7",
+    "htmlparser2": "^10.0.0",
+    "mongoose": "^8.12.1",
     "next": "^16.2.7",
+    "node-mailjet": "^6.0.8",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "recharts": "^2.15.1"

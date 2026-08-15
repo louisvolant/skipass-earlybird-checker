@@ -4,106 +4,84 @@ A web application for monitoring ski resort websites and checking for early bird
 
 ## Project Structure
 
-- `/backend`: Node.js server for scheduling checks and interacting with ski resort websites
-- `/frontend`: Next.js application for displaying check results and managing the monitoring process
+```
+├── src/app/      Next.js App Router pages and the API route handlers
+├── src/server/   Server-only logic (MongoDB models, Mailjet, checker crawler)
+├── public/       Static assets
+└── README.md
+```
+
+The app is a single Next.js project. The checker logic, MongoDB persistence, Mailjet notifications, and the daily cron all run inside the same deployment — there is no separate backend server.
 
 ## Features
 
 - Scheduled checks of ski resort websites
 - Customizable search parameters (resort, date, search terms)
+- Manual checks on demand
+- Email alerts (Mailjet) when an early bird pass becomes available
 - User-friendly web interface to view and manage checks
 - Dark mode support
 - Pagination and sorting of check results
 - Filtering of check results by status (found/not found)
+- Database usage display
 
 ## Requirements
 
-- Node.js (version 16 or higher recommended)
+- Node.js 18 or higher
 - npm (comes with Node.js)
 
 ## Installation
 
-### Backend
-
-1. Navigate to the backend directory:
-```
-cd backend
-```
-
-2. Install dependencies:
-```
+```bash
 npm install
 ```
 
-3. Create a `.env` file in the `/backend` directory with the following content:
-```
-SUPABASE_URL=https://XXXXXXYYYYYYYYYZZZZZZZZ.supabase.co
-SUPABASE_ANON_KEY=XXXXXXYYYYYYYYYZZZZZZZZXXXXXXYYYYYYYYYZZZZZZZZXXXXXXYYYYYYYYYZZZZZZZZXXXXXXYYYYYYYYYZZZZZZZZ
-PORT=3001
-SESSION_COOKIE_KEY=AAAAABBBBBCCCCCCC
-
-CORS_DEV_FRONTEND_URL_AND_PORT=http://localhost:3000
-NODE_ENV=DEV
-
-BASE_SKI_RESORT_URL = 'https://www.example-ski-resort.com';
-BASE_SKI_RESORT_URL_SHOP = 'https://www.example-ski-resort.com/products/search';
-TARGET_DATE = '2026-03-03';
-TARGET_LABEL = 'Ski Passes for 6 Days in Example Ski Resort';
-
-```
-
-
-### Frontend
-
-1. Navigate to the frontend directory:
-```
-cd ../frontend
-```
-
-2. Install dependencies:
-```
-npm install
-```
+Create a `.env.local` file with the environment variables used by the app (see Configuration below).
 
 ## Configuration
 
-- Backend: Edit the configuration in `backend/config.js` to set up your desired resorts, search terms, and check intervals.
-- Frontend: Adjust the `BACKEND_URL` in `frontend/src/lib/api.ts` if your backend is not running on the default URL.
+All configuration is done through environment variables. On Vercel, add these in **Project → Settings → Environment Variables**; for local development put them in `.env.local`:
 
-## Usage
+- `MONGODB_ATLAS_USERNAME`, `MONGODB_ATLAS_PASSWORD`, `MONGODB_ATLAS_CLUSTER_URL`, `MONGODB_ATLAS_DB_NAME`, `MONGODB_ATLAS_APP_NAME` — MongoDB Atlas connection
+- `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `MAIL_ORIGIN_ADDRESS` — email alerts
+- `BASE_SKI_RESORT_URL`, `BASE_SKI_RESORT_URL_SHOP` — the ski resort site to scrape
+- `CRON_SECRET` — optional bearer token protecting the `/api/scheduler` endpoint
 
-### Starting the Backend
+## Usage / Development
 
-In the `/backend` directory, run:
-```
+```bash
 npm run dev
 ```
 
-### Starting the Frontend
+The app (UI + API) will be available at `http://localhost:3000`.
 
-In the `/frontend` directory, run:
-```
-npm run dev
-```
+## API endpoints
 
-The frontend will be available at `http://localhost:3000` by default.
+Served by the Next.js app at `/api/*`:
 
-## Frontend Features
+- `GET /api/get-checks` — list check history
+- `GET /api/get-check-content?check_id=N` — detailed content of a check
+- `POST /api/delete-check-content` — delete a check
+- `POST /api/force-check` — run a check now
+- `GET /api/get-checker-configuration?isActiveOnly=true` — checker settings
+- `POST /api/update-checker-configuration` — update checker settings
+- `POST /api/clear-cache` — invalidate cached results
+- `GET /api/get-db-usage` — database size
+- `GET /api/scheduler` — scheduled check (called by the cron, guarded by `CRON_SECRET`)
 
-- View recent checks with details (timestamp, HTTP code, target date, price, status)
-- Force an immediate check
-- Refresh the check list
-- Sort checks by various fields
-- Filter checks by status (all, found, not found)
-- Paginate through check results
-- Toggle between light and dark modes
+The daily cron (07:00 UTC) is defined in `vercel.json`.
 
-## Development
+## Deployment (Vercel)
 
-Before pushing changes, ensure there are no compilation issues:
-```
+1. Import the repository. The Next.js app is auto-detected at the repository root — no Root Directory override is needed. Framework Preset must be **Next.js** (enforced via `vercel.json` `"framework": "nextjs"`).
+2. Add the env vars listed in Configuration.
+3. Deploy. The crawler and all API routes deploy as serverless functions.
+
+Before pushing changes, run:
+
+```bash
 npm run build
-npx --no-warnings tsc --noEmit
+npm run lint
 ```
 
 ## License

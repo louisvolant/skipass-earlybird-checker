@@ -1,4 +1,4 @@
-// frontend/postcss.config.mjs
+// postcss.config.mjs
 
 const config = {
   plugins: {

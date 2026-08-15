@@ -2,10 +2,8 @@
 import axios, { AxiosError } from 'axios';
 import { CheckerConfiguration } from '../lib/types';
 
-console.log('BACKEND_URL:', process.env.BACKEND_URL);
-
 const api = axios.create({
-  baseURL: process.env.BACKEND_URL,
+  baseURL: '',
   withCredentials: true,
 });
 

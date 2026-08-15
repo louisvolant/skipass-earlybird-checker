@@ -1,22 +1,32 @@
-const axios = require('axios');
-const htmlparser2 = require('htmlparser2');
-const { getActiveConfigurations } = require('../service/checker-configuration-service');
-const { saveCheckContent } = require('../service/checker-history-service');
+import axios from 'axios';
+import * as htmlparser2 from 'htmlparser2';
+import https from 'https';
+import { getConfigurations } from './checker-configuration-service';
+import { saveCheckContent } from './checker-history-service';
+import type { CheckResult } from './mailer-service';
 
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
-const https = require('https');
 
-async function performCheckForConfig(config) {
+async function performCheckForConfig(config: {
+  id: number;
+  target_date: string;
+  target_label: string;
+  is_mail_alert: boolean;
+  mail_alert_address?: string;
+  mail_alert_contact?: string;
+}) {
   const { target_date: dateToCheck, target_label: searchTerm } = config;
   const custom_headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-    'Referer': url,
-    'Cookie': '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a; __stripe_mid=bfd1450a-ce8d-4662-8628-af786988fdaf; __stripe_sid=8ce2e24f-06b6-486c-ab38-4edd88c17e44',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+    Referer: url,
+    Cookie:
+      '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a; __stripe_mid=bfd1450a-ce8d-4662-8628-af786988fdaf; __stripe_sid=8ce2e24f-06b6-486c-ab38-4edd88c17e44',
   };
 
   try {
-    const response = await axios.get(searchUrl, {
+    const response = await axios.get(searchUrl!, {
       params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
@@ -24,8 +34,8 @@ async function performCheckForConfig(config) {
 
     console.log(`Response data length: ${response.data.length}`);
 
-    let productRows = [];
-    let currentProductRow = null;
+    const productRows: { linkText: string; buttonText: string }[] = [];
+    let currentProductRow: { linkText: string; buttonText: string } | null = null;
     let currentLinkText = '';
     let currentButtonText = '';
     let insideProductRow = false;
@@ -34,7 +44,7 @@ async function performCheckForConfig(config) {
 
     const parser = new htmlparser2.Parser({
       onopentag(name, attribs) {
-        if (attribs.class?.includes('product-row') && !insideProductRow) { // Only start a new row if not already in one
+        if (attribs.class?.includes('product-row') && !insideProductRow) {
           insideProductRow = true;
           currentProductRow = { linkText: '', buttonText: '' };
           console.log('Found product-row');
@@ -55,28 +65,28 @@ async function performCheckForConfig(config) {
         if (insideLink && trimmedText) currentLinkText += trimmedText;
         if (insideButton && trimmedText) currentButtonText += trimmedText;
       },
-        onclosetag(name) {
-          if (insideProductRow && name === 'a' && insideLink) {
-            insideLink = false;
-            if (currentProductRow) {
-              currentProductRow.linkText = currentLinkText.trim();
-              console.log('Closed link, linkText:', currentLinkText.trim());
+      onclosetag(name) {
+        if (insideProductRow && name === 'a' && insideLink) {
+          insideLink = false;
+          if (currentProductRow) {
+            currentProductRow.linkText = currentLinkText.trim();
+            console.log('Closed link, linkText:', currentLinkText.trim());
+          }
+        }
+        if (insideProductRow && name === 'span' && insideButton) {
+          insideButton = false;
+          if (currentProductRow) {
+            currentProductRow.buttonText = currentButtonText.trim();
+            console.log('Closed button, buttonText:', currentButtonText.trim());
+            if (currentProductRow.linkText && currentProductRow.buttonText) {
+              productRows.push(currentProductRow);
+              console.log('Pushed to productRows:', currentProductRow);
+              insideProductRow = false;
+              currentProductRow = null;
             }
           }
-          if (insideProductRow && name === 'span' && insideButton) {
-            insideButton = false;
-            if (currentProductRow) {
-              currentProductRow.buttonText = currentButtonText.trim();
-              console.log('Closed button, buttonText:', currentButtonText.trim());
-              if (currentProductRow.linkText && currentProductRow.buttonText) {
-                productRows.push(currentProductRow);
-                console.log('Pushed to productRows:', currentProductRow);
-                insideProductRow = false;
-                currentProductRow = null;
-              }
-            }
-          }
-        },
+        }
+      },
     });
 
     parser.write(response.data);
@@ -93,9 +103,9 @@ async function performCheckForConfig(config) {
       console.log(`Raw buttonText: "${productRow.buttonText}"`);
 
       const priceMatch = productRow.buttonText.match(/€(\d+(?:[.,]\d{1,2})?)/);
-      let price = null;
+      let price: string | null = null;
       if (priceMatch) {
-        price = parseFloat(priceMatch[1].replace(',', '.'));
+        price = parseFloat(priceMatch[1].replace(',', '.')).toString();
         console.log(`Extracted Price: €${price}`);
       } else {
         console.warn(`Price not found in buttonText: "${productRow.buttonText}"`);
@@ -104,23 +114,31 @@ async function performCheckForConfig(config) {
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, price, response.data);
       return { found: true, price };
     } else {
-      console.log(`[${new Date().toISOString()}] "${searchTerm}" not found in product rows for date ${dateToCheck}.`);
+      console.log(
+        `[${new Date().toISOString()}] "${searchTerm}" not found in product rows for date ${dateToCheck}.`
+      );
       await saveCheckContent(response.status.toString(), fullUrl, dateToCheck, searchTerm, null, response.data);
       return { found: false, price: null };
     }
   } catch (error) {
     console.error(`Error during check for date ${dateToCheck} and label ${searchTerm}:`, error);
     const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
-    await saveCheckContent(error.response?.status?.toString() || '0', fullUrl, dateToCheck, searchTerm, null, error.message);
-    return { found: false, price: null, error: error.message };
+    const axiosError = error as { response?: { status?: number }; message: string };
+    await saveCheckContent(
+      axiosError.response?.status?.toString() || '0',
+      fullUrl,
+      dateToCheck,
+      searchTerm,
+      null,
+      axiosError.message
+    );
+    return { found: false, price: null, error: axiosError.message };
   }
 }
 
-
-
-async function checkSkiPassStation() {
+export async function checkSkiPassStation(): Promise<CheckResult[]> {
   try {
-    const configurations = await getActiveConfigurations();
+    const configurations = await getConfigurations(true);
     if (configurations.length === 0) {
       console.log('No active configurations found.');
       return [];
@@ -128,8 +146,17 @@ async function checkSkiPassStation() {
 
     const results = await Promise.all(
       configurations.map(async (config) => {
-        console.log(`Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`);
-        const result = await performCheckForConfig(config);
+        console.log(
+          `Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`
+        );
+        const result = await performCheckForConfig(
+          config as unknown as {
+            id: number;
+            target_date: string;
+            target_label: string;
+            is_mail_alert: boolean;
+          }
+        );
         return {
           configId: config.id,
           target_date: config.target_date,
@@ -142,11 +169,9 @@ async function checkSkiPassStation() {
       })
     );
 
-    return results;
+    return results as unknown as CheckResult[];
   } catch (error) {
     console.error('Error in checkSkiPassStation:', error);
     throw error;
   }
 }
-
-module.exports = { checkSkiPassStation };

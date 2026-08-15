@@ -1,18 +1,9 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "frontend/package.json", "use": "@vercel/next" },
-    { "src": "backend/server.js", "use": "@vercel/node" },
-    { "src": "backend/cron/scheduler.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/backend/server.js" },
-    { "src": "/cron/(.*)", "dest": "/backend/server.js" },
-    { "src": "/(.*)", "dest": "/frontend/$1" }
-  ],
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
   "crons": [
     {
-      "path": "/cron/scheduler",
+      "path": "/api/scheduler",
       "schedule": "0 7 * * *"
     }
   ]
