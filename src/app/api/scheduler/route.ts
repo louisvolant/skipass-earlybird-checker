@@ -3,7 +3,8 @@ import { checkSkiPassStation } from '../../../server/service/skipass-resort-call
 import { sendMail } from '../../../server/service/mailer-service';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+// Hobby plan caps serverless maxDuration at 60s.
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const authToken = req.headers.get('Authorization') || '';
