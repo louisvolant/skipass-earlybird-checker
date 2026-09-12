@@ -1,4 +1,4 @@
-import mongoose_client from '../config/mongoose';
+import mongoose_client, { connectDB } from '../config/mongoose';
 
 const checkerContentSchema = new mongoose_client.Schema({
   id: Number,
@@ -10,10 +10,13 @@ const checkerContentSchema = new mongoose_client.Schema({
   price: String,
   response_text: String,
 });
-const CheckerContentModel = mongoose_client.model('checker_content', checkerContentSchema, 'checker_content');
+const CheckerContentModel =
+  mongoose_client.models.checker_content ||
+  mongoose_client.model('checker_content', checkerContentSchema, 'checker_content');
 
 export async function getCheckList() {
   try {
+    await connectDB();
     const existingData = await CheckerContentModel.find({})
       .select('-response_text')
       .sort({ created_at: -1 });
@@ -32,6 +35,7 @@ export async function getCheckList() {
 
 export async function getCheckContent(check_id: number) {
   try {
+    await connectDB();
     const existingData = await CheckerContentModel.findOne({ id: check_id });
     console.info(
       existingData
@@ -54,6 +58,7 @@ export async function saveCheckContent(
   input_response_text: string
 ) {
   try {
+    await connectDB();
     const maxIdDocument = await CheckerContentModel.findOne().sort({ id: -1 }).limit(1);
     const nextId = maxIdDocument ? Number(maxIdDocument.id) + 1 : 1;
 
@@ -78,6 +83,7 @@ export async function saveCheckContent(
 
 export async function deleteCheckContent(checkId: number) {
   try {
+    await connectDB();
     const result = await CheckerContentModel.findOneAndDelete({ id: checkId });
 
     if (!result) {

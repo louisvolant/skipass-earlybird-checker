@@ -26,10 +26,21 @@ async function performCheckForConfig(config: {
   };
 
   try {
+    // In Node.js environments, use an Agent to bypass SSL cert issues if needed;
+    // In Cloudflare Workers/edge environments, https.Agent is either unavailable or unnecessary.
+    let httpsAgent: unknown;
+    try {
+      if (typeof https !== 'undefined' && https?.Agent) {
+        httpsAgent = new https.Agent({ rejectUnauthorized: false });
+      }
+    } catch {
+      // Ignored on non-Node runtimes
+    }
+
     const response = await axios.get(searchUrl!, {
       params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+      ...(httpsAgent ? { httpsAgent } : {}),
     });
 
     console.log(`Response data length: ${response.data.length}`);

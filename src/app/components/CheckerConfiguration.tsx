@@ -1,6 +1,6 @@
 // src/app/components/CheckerConfiguration.tsx
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getCheckerConfiguration, updateCheckerConfiguration, clearCache } from '@/lib/api';
 import { CheckerConfiguration as CheckerConfigType } from '@/lib/types';
 
@@ -19,27 +19,28 @@ export default function CheckerConfiguration({ onFetchConfigurations }: CheckerC
   // New state for the "Only Active" toggle, default to true
   const [showActiveOnly, setShowActiveOnly] = useState<boolean>(true);
 
-  // Modified fetchConfigurations to accept an optional parameter
-  const fetchConfigurations = async (activeOnly: boolean = showActiveOnly) => {
-    try {
-      console.log(`Fetching configurations (Active Only: ${activeOnly})...`);
-      setIsConfigsLoading(true);
-      // Pass the activeOnly parameter to the API call
-      const response = await getCheckerConfiguration(activeOnly);
-      console.log('Configurations fetched:', response);
-      setConfigurations(response.success ? response.configurations || [] : []);
-      if (onFetchConfigurations) onFetchConfigurations();
-    } catch (error) {
-      console.error('Failed to fetch configurations:', error);
-    } finally {
-      setIsConfigsLoading(false);
-    }
-  };
+  // Memoized fetchConfigurations with proper dependency tracking
+  const fetchConfigurations = useCallback(
+    async (activeOnly: boolean = showActiveOnly) => {
+      try {
+        console.log(`Fetching configurations (Active Only: ${activeOnly})...`);
+        setIsConfigsLoading(true);
+        const response = await getCheckerConfiguration(activeOnly);
+        console.log('Configurations fetched:', response);
+        setConfigurations(response.success ? response.configurations || [] : []);
+        if (onFetchConfigurations) onFetchConfigurations();
+      } catch (error) {
+        console.error('Failed to fetch configurations:', error);
+      } finally {
+        setIsConfigsLoading(false);
+      }
+    },
+    [showActiveOnly, onFetchConfigurations]
+  );
 
   useEffect(() => {
-    // Initial fetch based on the default showActiveOnly state
     fetchConfigurations();
-  }, [showActiveOnly]);
+  }, [fetchConfigurations]);
 
   const handleUpdateClick = (config: CheckerConfigType) => {
     console.log('Selected Config:', config);
