@@ -190,11 +190,11 @@ Before committing or deploying, run the verification scripts:
 # Code linting (ESLint 9)
 npm run lint
 
-# Next.js production build
+# Production build for Cloudflare Workers (runs Next.js + OpenNext adapter)
 npm run build
 
-# OpenNext Cloudflare Worker build
-npm run build:worker
+# Next.js-only standalone build
+npm run build:next
 
 # Dry run deployment verification
 npx wrangler deploy --dry-run
