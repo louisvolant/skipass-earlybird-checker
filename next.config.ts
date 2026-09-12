@@ -1,9 +1,12 @@
-// next.config.ts
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
+
+initOpenNextCloudflareForDev();
+
+const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {},
   serverExternalPackages: ['mongoose', 'node-mailjet'],
 };
 
-module.exports = nextConfig;
+export default nextConfig;

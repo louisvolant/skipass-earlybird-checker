@@ -50,3 +50,9 @@ node_modules/
 dist/
 build/
 .cache/
+
+# Cloudflare / OpenNext
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts
