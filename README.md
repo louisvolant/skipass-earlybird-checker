@@ -28,7 +28,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
 - **Dark Mode Support**: DaisyUI theme switching
 - **Database Usage Display**: Real-time MongoDB collection size and object count monitoring
-- **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, OpenSkipass, etc.)
+- **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
 

@@ -24,4 +24,10 @@ describe('links configuration', () => {
     assert.ok(whoisLink);
     assert.strictEqual(whoisLink.href, 'https://whois.louisvolant.com');
   });
+
+  it('should point Currency Converter to currency-converter.louisvolant.com', () => {
+    const currencyLink = externalLinks.find((link) => link.label === 'Currency Converter');
+    assert.ok(currencyLink);
+    assert.strictEqual(currencyLink.href, 'https://currency-converter.louisvolant.com');
+  });
 });
