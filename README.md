@@ -28,6 +28,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
 - **Dark Mode Support**: DaisyUI theme switching
 - **Database Usage Display**: Real-time MongoDB collection size and object count monitoring
+- **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
 
@@ -189,6 +190,9 @@ Before committing or deploying, run the verification scripts:
 ```bash
 # Code linting (ESLint 9)
 npm run lint
+
+# Unit tests
+npm test
 
 # Production build for Cloudflare Workers (runs Next.js + OpenNext adapter)
 npm run build

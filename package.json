@@ -9,6 +9,7 @@
     "build:worker": "opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "node --no-warnings --test --experimental-strip-types \"src/**/*.test.ts\"",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --keep-vars",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload --keep-vars",
