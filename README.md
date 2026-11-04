@@ -12,7 +12,7 @@ Built with **Next.js 16 (App Router)** and ready to deploy on **Cloudflare Worke
 ├── src/lib/          Client API client and TypeScript interfaces
 ├── public/           Static assets and Cloudflare cache headers (_headers)
 ├── open-next.config.ts OpenNext Cloudflare adapter configuration
-├── wrangler.jsonc    Cloudflare Workers configuration (crons, assets, keep_vars)
+├── wrangler.jsonc    Cloudflare Workers configuration (crons, assets, keep_vars, observability)
 ├── worker.ts         Cloudflare Worker entrypoint with OpenNext handler & cron support
 └── README.md
 ```
@@ -28,6 +28,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
 - **Dark Mode Support**: DaisyUI theme switching
 - **Database Usage Display**: Real-time MongoDB collection size and object count monitoring
+- **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
@@ -180,6 +181,22 @@ When the cron fires at 07:00 UTC daily:
 1. Cloudflare Workers calls the `scheduled()` event handler in `worker.ts`.
 2. The handler forwards the request to `/api/scheduler` with the authorization header (`Bearer $CRON_SECRET`).
 3. The crawler queries resort availability, updates MongoDB, and sends Mailjet alerts if passes are found.
+
+### Observability & Logging
+
+Cloudflare Workers Observability is configured in `wrangler.jsonc`:
+
+```jsonc
+"observability": {
+  "logs": {
+    "enabled": false,
+    "invocation_logs": true
+  }
+}
+```
+
+- `logs.enabled`: Set to `false` to disable persistent log storage and optimize costs.
+- `logs.invocation_logs`: Set to `true` to capture invocation traces (HTTP status code, execution duration, and timestamp) in Cloudflare's dashboard for both fetch requests and scheduled cron executions.
 
 ---
 

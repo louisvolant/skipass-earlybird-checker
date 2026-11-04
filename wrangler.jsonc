@@ -11,6 +11,14 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Cloudflare Observability configuration
+  // Disables general log persistence while preserving invocation logs for execution traces
+  "observability": {
+    "logs": {
+      "enabled": false,
+      "invocation_logs": true
+    }
+  },
   "keep_vars": true,
   "triggers": {
     "crons": [

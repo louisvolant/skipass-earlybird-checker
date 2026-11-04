@@ -1,5 +1,6 @@
 // worker.ts
 // Entrypoint for Cloudflare Workers combining OpenNext Next.js handler with cron trigger support.
+// Cloudflare Observability captures invocation logs for both fetch and scheduled handler executions.
 
 // @ts-ignore .open-next/worker.js is generated at build time by @opennextjs/cloudflare
 import { default as handler } from './.open-next/worker.js';
