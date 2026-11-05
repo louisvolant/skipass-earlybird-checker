@@ -58,4 +58,16 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(pkg.devDependencies['@opennextjs/cloudflare'], '@opennextjs/cloudflare should be declared');
     assert.ok(pkg.devDependencies['wrangler'], 'wrangler should be declared');
   });
+
+  it('should declare updated minor/patch versions for core libraries', () => {
+    // Verify core packages are maintained on stable releases
+    const pkgPath = path.resolve(process.cwd(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+    assert.ok(pkg.dependencies.axios, 'axios dependency should exist');
+    assert.ok(pkg.dependencies.mongoose, 'mongoose dependency should exist');
+    assert.ok(pkg.dependencies.react, 'react dependency should exist');
+    assert.ok(pkg.devDependencies.tailwindcss, 'tailwindcss devDependency should exist');
+    assert.ok(pkg.devDependencies.daisyui, 'daisyui devDependency should exist');
+  });
 });
