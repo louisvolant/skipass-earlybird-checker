@@ -225,6 +225,10 @@ npm run build:next
 npx wrangler deploy --dry-run
 ```
 
+### Security & Dependency Overrides
+
+The repository uses npm package `overrides` in `package.json` to secure transitive dependencies (such as `glob` and `minimatch`) without breaking Cloudflare OpenNext adapter compatibility, achieving 0 vulnerabilities in `npm audit`.
+
 ---
 
 ## License

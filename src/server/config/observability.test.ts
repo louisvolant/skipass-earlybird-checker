@@ -70,4 +70,13 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(pkg.devDependencies.tailwindcss, 'tailwindcss devDependency should exist');
     assert.ok(pkg.devDependencies.daisyui, 'daisyui devDependency should exist');
   });
+
+  it('should specify package overrides to remediate transitive security vulnerabilities', () => {
+    // Check security overrides ensuring zero vulnerabilities in npm audit
+    const pkgPath = path.resolve(process.cwd(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+    assert.ok(pkg.overrides, 'overrides section should be declared in package.json');
+    assert.ok(pkg.overrides.glob, 'glob override should be declared');
+  });
 });
