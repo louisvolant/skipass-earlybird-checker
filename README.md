@@ -33,8 +33,8 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router, Turbopack)
-- **Deployment Platform**: Cloudflare Workers (via `@opennextjs/cloudflare` + `wrangler`)
+- **Tech Stack**: Next.js 16 (App Router, Turbopack)
+- **Deployment Platform**: Cloudflare Workers (via `@opennextjs/cloudflare` 1.20+ + `wrangler` 4.156+)
 - **Frontend**: React 19, Tailwind CSS 4, daisyUI 5, recharts
 - **Backend / Services**:
   - Next.js Route Handlers (`/app/api/.../route.ts`)

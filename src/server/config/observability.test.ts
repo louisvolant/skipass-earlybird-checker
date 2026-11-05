@@ -49,4 +49,12 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(Array.isArray(config.compatibility_flags));
     assert.ok(config.compatibility_flags.includes('nodejs_compat'));
   });
+
+  it('should define compatible Cloudflare dependencies in package.json', () => {
+    const pkgPath = path.resolve(process.cwd(), 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+    assert.ok(pkg.devDependencies['@opennextjs/cloudflare'], '@opennextjs/cloudflare should be declared');
+    assert.ok(pkg.devDependencies['wrangler'], 'wrangler should be declared');
+  });
 });
