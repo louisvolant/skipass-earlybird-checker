@@ -51,6 +51,7 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
   });
 
   it('should define compatible Cloudflare dependencies in package.json', () => {
+    // Verify required deployment dependencies exist and are valid objects
     const pkgPath = path.resolve(process.cwd(), 'package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 

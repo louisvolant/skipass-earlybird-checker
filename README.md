@@ -211,6 +211,9 @@ npm run lint
 # Unit tests
 npm test
 
+# Security vulnerability audit
+npm audit
+
 # Production build for Cloudflare Workers (runs Next.js + OpenNext adapter)
 npm run build
 
