@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /**
- * Global cache interface for Mongoose connection.
+ * Global cache interface for Mongoose 9 connection.
  * Preserves connections across Hot Module Replacement (HMR) in development
  * and ensures lazy initialization during runtime instead of build time.
  */

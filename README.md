@@ -38,7 +38,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Frontend**: React 19.3, Tailwind CSS 4.3, daisyUI 5.7
 - **Backend / Services**:
   - Next.js Route Handlers (`/app/api/.../route.ts`)
-  - MongoDB via Mongoose 8.24 (lazy connection with singleton caching)
+  - MongoDB via Mongoose 9 (lazy connection with singleton caching)
   - HTTP requests via Axios 1.21
   - Mailjet Email API (`node-mailjet`)
   - HTML parsing via `htmlparser2` 12
