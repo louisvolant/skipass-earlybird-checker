@@ -53,6 +53,7 @@ async function performCheckForConfig(config: {
     let insideLink = false;
     let insideButton = false;
 
+    // Parse resort HTML DOM using htmlparser2 to extract product row names and action buttons
     const parser = new htmlparser2.Parser({
       onopentag(name, attribs) {
         if (attribs.class?.includes('product-row') && !insideProductRow) {

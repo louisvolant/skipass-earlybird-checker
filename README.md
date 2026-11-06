@@ -41,7 +41,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
   - MongoDB via Mongoose 8.24 (lazy connection with singleton caching)
   - HTTP requests via Axios 1.21
   - Mailjet Email API (`node-mailjet`)
-  - HTML parsing via `htmlparser2`
+  - HTML parsing via `htmlparser2` 12
 - **TypeScript**: TypeScript 6.0+
 
 ---
