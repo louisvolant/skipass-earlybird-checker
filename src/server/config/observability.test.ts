@@ -67,6 +67,7 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(pkg.dependencies.axios, 'axios dependency should exist');
     assert.ok(pkg.dependencies.mongoose, 'mongoose dependency should exist');
     assert.ok(pkg.dependencies.react, 'react dependency should exist');
+    assert.ok(pkg.dependencies['@vercel/speed-insights'], '@vercel/speed-insights should exist');
     assert.ok(pkg.devDependencies.tailwindcss, 'tailwindcss devDependency should exist');
     assert.ok(pkg.devDependencies.daisyui, 'daisyui devDependency should exist');
     assert.strictEqual(pkg.dependencies.recharts, undefined, 'unused recharts dependency should be omitted');

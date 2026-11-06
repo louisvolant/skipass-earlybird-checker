@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+// SpeedInsights client component from @vercel/speed-insights v2
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Footer from './Footer';
 import { ThemeProvider } from './ThemeProvider';
