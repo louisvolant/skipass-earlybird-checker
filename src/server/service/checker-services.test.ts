@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from '../config/mongoose.ts';
-import { getCheckList, getCheckContent, deleteCheckContent } from './checker-history-service.ts';
+import {
+  getCheckList,
+  getCheckContent,
+  deleteCheckContent,
+  sanitizeResponseText,
+  MAX_RESPONSE_TEXT_LENGTH,
+} from './checker-history-service.ts';
 import { getConfigurations, updateConfiguration } from './checker-configuration-service.ts';
 
 describe('Checker Services Mongoose Optimizations', () => {
@@ -46,5 +52,23 @@ describe('Checker Services Mongoose Optimizations', () => {
       process.env.MONGODB_URI = originalUri;
       process.env.MONGODB_ATLAS_CLUSTER_URL = originalCluster;
     }
+  });
+
+  it('should sanitize and cap oversized HTML response strings', () => {
+    assert.strictEqual(MAX_RESPONSE_TEXT_LENGTH, 50000);
+
+    // Empty or falsy input
+    assert.strictEqual(sanitizeResponseText(null), '');
+    assert.strictEqual(sanitizeResponseText(''), '');
+
+    // Under limit
+    const smallText = '<html><body>Small page</body></html>';
+    assert.strictEqual(sanitizeResponseText(smallText), smallText);
+
+    // Over limit
+    const hugeText = 'a'.repeat(60000);
+    const sanitized = sanitizeResponseText(hugeText, 100);
+    assert.ok(sanitized.startsWith('a'.repeat(100)));
+    assert.ok(sanitized.includes('Content truncated to 100 characters'));
   });
 });

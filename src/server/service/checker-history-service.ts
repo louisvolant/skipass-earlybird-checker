@@ -60,6 +60,19 @@ export async function getCheckContent(check_id: number) {
   }
 }
 
+// Maximum length (50,000 chars) for stored raw HTML response to avoid heavy BSON serialization
+// and memory consumption in Cloudflare Workers V8 isolates
+export const MAX_RESPONSE_TEXT_LENGTH = 50_000;
+
+export function sanitizeResponseText(
+  text: string | null | undefined,
+  maxLength = MAX_RESPONSE_TEXT_LENGTH
+): string {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}\n\n<!-- [Content truncated to ${maxLength} characters to optimize Worker CPU and storage] -->`;
+}
+
 export async function saveCheckContent(
   input_http_code: string,
   input_full_url: string,
@@ -85,7 +98,7 @@ export async function saveCheckContent(
       target_date: input_target_date,
       target_label: input_target_label,
       price: input_price,
-      response_text: input_response_text,
+      response_text: sanitizeResponseText(input_response_text),
     });
 
     await CheckerContent.save();
