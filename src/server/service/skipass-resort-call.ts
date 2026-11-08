@@ -1,9 +1,9 @@
 import axios from 'axios';
 import * as htmlparser2 from 'htmlparser2';
 import https from 'https';
-import { getConfigurations } from './checker-configuration-service';
-import { saveCheckContent } from './checker-history-service';
-import type { CheckResult } from './mailer-service';
+import { getConfigurations } from './checker-configuration-service.ts';
+import { saveCheckContent } from './checker-history-service.ts';
+import type { CheckResult } from './mailer-service.ts';
 
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;

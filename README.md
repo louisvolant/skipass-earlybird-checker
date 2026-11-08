@@ -29,7 +29,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Dark Mode Support**: DaisyUI theme switching
 - **Database Usage Display & Edge Caching**: Real-time MongoDB collection size and object count monitoring with in-memory TTL caching and Cloudflare Edge Cache-Control headers
 - **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
-- **Optimized Edge Performance**: Lightweight lean queries, bounded limits, and sanitized HTML payload capping on Mongoose models to minimize V8 CPU compute time and BSON serialization overhead on Cloudflare Workers
+- **Optimized Edge Performance & HTTP Caching**: Lightweight lean queries, bounded limits, and sanitized HTML payload capping on Mongoose models combined with Cloudflare Edge `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and BSON serialization overhead
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
@@ -131,17 +131,17 @@ This compiles the Next.js app with OpenNext and launches the local Wrangler deve
 
 All backend routes follow Next.js App Router conventions in `src/app/api/.../route.ts`:
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/get-checks` | Fetch recent check history |
-| `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check |
-| `POST`| `/api/delete-check-content` | Delete a check entry by ID (`{ "check_id": <id> }`) |
-| `POST`| `/api/force-check` | Manually run crawler checks across active configurations |
-| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations |
-| `POST`| `/api/update-checker-configuration` | Update an existing checker configuration |
-| `POST`| `/api/clear-cache` | Invalidate cached results |
-| `GET` | `/api/get-db-usage` | Fetch MongoDB database size and stats |
-| `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) |
+| Method | Endpoint | Description | Cache-Control |
+|---|---|---|---|
+| `GET` | `/api/get-checks` | Fetch recent check history | Edge cache (60s, stale-while-revalidate 120s) |
+| `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check | Edge cache (24h immutable history) |
+| `POST`| `/api/delete-check-content` | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
+| `POST`| `/api/force-check` | Manually run crawler checks across active configurations | Dynamic |
+| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations | Edge cache (60s, stale-while-revalidate 300s) |
+| `POST`| `/api/update-checker-configuration` | Update an existing checker configuration | Dynamic |
+| `POST`| `/api/clear-cache` | Invalidate cached results | Dynamic |
+| `GET` | `/api/get-db-usage` | Fetch MongoDB database size and stats | Edge cache (300s, stale-while-revalidate 600s) |
+| `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
 
 ---
 

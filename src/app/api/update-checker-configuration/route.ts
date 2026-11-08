@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { updateConfiguration } from '../../../server/service/checker-configuration-service';
-import { maskEmail } from '../../../server/utils/mail-utils';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { updateConfiguration } from '../../../server/service/checker-configuration-service.ts';
+import { maskEmail } from '../../../server/utils/mail-utils.ts';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCheckContent } from '../../../server/service/checker-history-service';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { getCheckContent } from '../../../server/service/checker-history-service.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,19 +17,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Content not found for the given check_id' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
-      content: {
-        id: data.id,
-        timestamp: data.created_at,
-        httpCode: data.http_code,
-        url: data.full_url,
-        targetDate: data.target_date,
-        targetLabel: data.target_label,
-        price: data.price,
-        contentData: data.response_text || null,
+    return NextResponse.json(
+      {
+        success: true,
+        content: {
+          id: data.id,
+          timestamp: data.created_at,
+          httpCode: data.http_code,
+          url: data.full_url,
+          targetDate: data.target_date,
+          targetLabel: data.target_label,
+          price: data.price,
+          contentData: data.response_text || null,
+        },
       },
-    });
+      {
+        headers: {
+          // Check content is immutable once recorded; cache at edge for 24h to avoid large BSON queries
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

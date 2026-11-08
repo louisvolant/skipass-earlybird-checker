@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { deleteCheckContent } from '../../../server/service/checker-history-service';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { deleteCheckContent } from '../../../server/service/checker-history-service.ts';
 
 export const dynamic = 'force-dynamic';
 

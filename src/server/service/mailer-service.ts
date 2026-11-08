@@ -1,4 +1,4 @@
-import { getMailjet } from '../config/mailjet';
+import { getMailjet } from '../config/mailjet.ts';
 
 export type CheckResult = {
   configId: number | string;

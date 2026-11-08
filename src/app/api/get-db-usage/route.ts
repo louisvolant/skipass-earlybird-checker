@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getDbUsage } from '../../../server/service/db-usage-service';
+import { NextResponse } from 'next/server.js';
+import { getDbUsage } from '../../../server/service/db-usage-service.ts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;

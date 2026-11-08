@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { checkSkiPassStation } from '../../../server/service/skipass-resort-call';
-import { sendMail } from '../../../server/service/mailer-service';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { checkSkiPassStation } from '../../../server/service/skipass-resort-call.ts';
+import { sendMail } from '../../../server/service/mailer-service.ts';
 
 export const dynamic = 'force-dynamic';
 // Hobby plan caps serverless maxDuration at 60s.
