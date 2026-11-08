@@ -29,6 +29,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Dark Mode Support**: DaisyUI theme switching
 - **Database Usage Display**: Real-time MongoDB collection size and object count monitoring
 - **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
+- **Optimized Edge Performance**: Lightweight lean queries and bounded limits on Mongoose models to minimize V8 CPU compute time and memory allocations on Cloudflare Workers
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack

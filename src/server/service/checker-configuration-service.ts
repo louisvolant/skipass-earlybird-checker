@@ -1,4 +1,4 @@
-import mongoose_client, { connectDB } from '../config/mongoose';
+import mongoose_client, { connectDB } from '../config/mongoose.ts';
 
 const activeConfigurationSchema = new mongoose_client.Schema({
   id: Number,
@@ -26,7 +26,8 @@ export async function getConfigurations(isActiveOnly = true) {
       query.is_active = true;
     }
 
-    const existingData = await ActiveConfigurationModel.find(query);
+    // Using .lean() to bypass Mongoose document hydration, optimizing CPU cycles in serverless
+    const existingData = await ActiveConfigurationModel.find(query).lean();
     console.info(
       `Data (ActiveConfigurationModel) fetched from Internal MongoDB with query: ${JSON.stringify(query)}`
     );
@@ -44,7 +45,7 @@ export async function updateConfiguration(id: number, updatedFields: Record<stri
       { id },
       { $set: updatedFields },
       { new: true }
-    );
+    ).lean();
 
     if (!result) {
       throw new Error('Configuration not found or no changes made');

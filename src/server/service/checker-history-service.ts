@@ -1,4 +1,4 @@
-import mongoose_client, { connectDB } from '../config/mongoose';
+import mongoose_client, { connectDB } from '../config/mongoose.ts';
 
 const checkerContentSchema = new mongoose_client.Schema({
   id: Number,
@@ -14,12 +14,20 @@ const CheckerContentModel =
   mongoose_client.models.checker_content ||
   mongoose_client.model('checker_content', checkerContentSchema, 'checker_content');
 
-export async function getCheckList() {
+/**
+ * Retrieve check list history.
+ * Uses .lean() to return plain JavaScript objects instead of hydrated Mongoose documents,
+ * drastically reducing V8 CPU execution time and memory allocations on Cloudflare Workers.
+ * Adds a default limit to prevent unbounded memory growth.
+ */
+export async function getCheckList(limit = 100) {
   try {
     await connectDB();
     const existingData = await CheckerContentModel.find({})
       .select('-response_text')
-      .sort({ created_at: -1 });
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .lean();
 
     console.info(
       existingData && existingData.length > 0
@@ -33,10 +41,13 @@ export async function getCheckList() {
   }
 }
 
+/**
+ * Retrieve specific check content by ID using lean query for fast deserialization.
+ */
 export async function getCheckContent(check_id: number) {
   try {
     await connectDB();
-    const existingData = await CheckerContentModel.findOne({ id: check_id });
+    const existingData = await CheckerContentModel.findOne({ id: check_id }).lean();
     console.info(
       existingData
         ? 'Data (CheckerContentModel) fetched from Internal MongoDB'
@@ -59,7 +70,11 @@ export async function saveCheckContent(
 ) {
   try {
     await connectDB();
-    const maxIdDocument = await CheckerContentModel.findOne().sort({ id: -1 }).limit(1);
+    // Only query id field with lean option to minimize BSON transfer and CPU deserialization overhead
+    const maxIdDocument = await CheckerContentModel.findOne()
+      .sort({ id: -1 })
+      .select('id')
+      .lean();
     const nextId = maxIdDocument ? Number(maxIdDocument.id) + 1 : 1;
 
     const CheckerContent = new CheckerContentModel({
