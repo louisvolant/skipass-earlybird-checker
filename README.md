@@ -30,6 +30,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Database Usage Display & Edge Caching**: Real-time MongoDB collection size and object count monitoring with in-memory TTL caching and Cloudflare Edge Cache-Control headers
 - **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
 - **Resilient Worker Entrypoint & Crash Prevention**: Top-level error boundary and early URL validation in the Cloudflare Worker entrypoint preventing uncaught exceptions (Error 1101) from scanner probes or runtime crashes
+- **Next.js App Router Error Boundaries**: Custom `error.tsx` and `global-error.tsx` fallback boundaries providing graceful error recovery UI and preventing rendering exceptions from bubbling to the server runtime
 - **Optimized Edge Performance & HTTP Caching**: Lightweight lean queries, bounded limits, and sanitized HTML payload capping on Mongoose models combined with Cloudflare Edge `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and BSON serialization overhead
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
