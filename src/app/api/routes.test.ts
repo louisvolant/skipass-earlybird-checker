@@ -9,6 +9,7 @@ import { POST as clearCacheRoute } from './clear-cache/route.ts';
 import { GET as schedulerRoute } from './scheduler/route.ts';
 import { POST as deleteCheckContentRoute } from './delete-check-content/route.ts';
 import { POST as updateCheckerConfigRoute } from './update-checker-configuration/route.ts';
+import { POST as forceCheckRoute } from './force-check/route.ts';
 
 describe('API Route Handlers and Edge Caching', () => {
   it('GET /api/get-checks should attach Cloudflare edge cache headers', async () => {
@@ -120,5 +121,39 @@ describe('API Route Handlers and Edge Caching', () => {
         delete process.env.CRON_SECRET;
       }
     }
+  });
+
+  it('should immediately terminate and return 499 when client aborts request', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    // Test GET /api/get-checks with aborted signal
+    const abortedChecksReq = new NextRequest('http://localhost:3000/api/get-checks', {
+      signal: controller.signal,
+    });
+    const checksRes = await getChecksRoute(abortedChecksReq);
+    assert.strictEqual(checksRes.status, 499);
+
+    // Test GET /api/get-db-usage with aborted signal
+    const abortedDbReq = new NextRequest('http://localhost:3000/api/get-db-usage', {
+      signal: controller.signal,
+    });
+    const dbRes = await getDbUsageRoute(abortedDbReq);
+    assert.strictEqual(dbRes.status, 499);
+
+    // Test GET /api/get-checker-configuration with aborted signal
+    const abortedConfigReq = new NextRequest('http://localhost:3000/api/get-checker-configuration', {
+      signal: controller.signal,
+    });
+    const configRes = await getCheckerConfigRoute(abortedConfigReq);
+    assert.strictEqual(configRes.status, 499);
+
+    // Test POST /api/force-check with aborted signal
+    const abortedForceReq = new NextRequest('http://localhost:3000/api/force-check', {
+      method: 'POST',
+      signal: controller.signal,
+    });
+    const forceRes = await forceCheckRoute(abortedForceReq);
+    assert.strictEqual(forceRes.status, 499);
   });
 });

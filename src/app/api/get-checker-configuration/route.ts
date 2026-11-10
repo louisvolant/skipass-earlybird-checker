@@ -6,6 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    if (req?.signal?.aborted) {
+      return new NextResponse(null, { status: 499 });
+    }
     const isActiveOnly = req.nextUrl.searchParams.get('isActiveOnly') === 'true';
     const configurations = await getConfigurations(isActiveOnly);
 

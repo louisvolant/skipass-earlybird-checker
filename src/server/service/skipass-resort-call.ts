@@ -8,14 +8,20 @@ import type { CheckResult } from './mailer-service.ts';
 const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
 
-async function performCheckForConfig(config: {
-  id: number;
-  target_date: string;
-  target_label: string;
-  is_mail_alert: boolean;
-  mail_alert_address?: string;
-  mail_alert_contact?: string;
-}) {
+async function performCheckForConfig(
+  config: {
+    id: number;
+    target_date: string;
+    target_label: string;
+    is_mail_alert: boolean;
+    mail_alert_address?: string;
+    mail_alert_contact?: string;
+  },
+  signal?: AbortSignal
+) {
+  if (signal?.aborted) {
+    throw new Error('Check aborted: client disconnected');
+  }
   const { target_date: dateToCheck, target_label: searchTerm } = config;
   const custom_headers = {
     'User-Agent':
@@ -40,6 +46,7 @@ async function performCheckForConfig(config: {
     const response = await axios.get(searchUrl!, {
       params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
+      signal,
       ...(httpsAgent ? { httpsAgent } : {}),
     });
 
@@ -148,16 +155,24 @@ async function performCheckForConfig(config: {
   }
 }
 
-export async function checkSkiPassStation(): Promise<CheckResult[]> {
+export async function checkSkiPassStation(signal?: AbortSignal): Promise<CheckResult[]> {
   try {
+    if (signal?.aborted) {
+      console.log('Skipping resort check: request was aborted by client');
+      return [];
+    }
+
     const configurations = await getConfigurations(true);
-    if (configurations.length === 0) {
-      console.log('No active configurations found.');
+    if (configurations.length === 0 || signal?.aborted) {
+      console.log('No active configurations found or request aborted.');
       return [];
     }
 
     const results = await Promise.all(
       configurations.map(async (config) => {
+        if (signal?.aborted) {
+          return null;
+        }
         console.log(
           `Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`
         );
@@ -167,7 +182,8 @@ export async function checkSkiPassStation(): Promise<CheckResult[]> {
             target_date: string;
             target_label: string;
             is_mail_alert: boolean;
-          }
+          },
+          signal
         );
         return {
           configId: config.id,
@@ -181,7 +197,7 @@ export async function checkSkiPassStation(): Promise<CheckResult[]> {
       })
     );
 
-    return results as unknown as CheckResult[];
+    return results.filter(Boolean) as unknown as CheckResult[];
   } catch (error) {
     console.error('Error in checkSkiPassStation:', error);
     throw error;

@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server.js';
+import { NextRequest, NextResponse } from 'next/server.js';
 import { getCheckList } from '../../../server/service/checker-history-service.ts';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req?: NextRequest) {
   try {
+    if (req?.signal?.aborted) {
+      return new NextResponse(null, { status: 499 });
+    }
+
     const checkList = await getCheckList();
 
     const formattedData = checkList.map((check) => ({

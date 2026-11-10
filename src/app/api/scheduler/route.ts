@@ -17,8 +17,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    if (req.signal?.aborted) {
+      return new NextResponse(null, { status: 499 });
+    }
     console.log('Starting scheduled check...');
-    const checkResults = await checkSkiPassStation();
+    const checkResults = await checkSkiPassStation(req.signal);
     console.log('Check results obtained:', checkResults);
     const mailResult = await sendMail(checkResults);
     console.log('Mail sending completed:', mailResult);
