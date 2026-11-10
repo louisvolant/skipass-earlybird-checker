@@ -21,7 +21,7 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(typeof config === 'object' && config !== null);
   });
 
-  it('should have Cloudflare observability configured with invocation logs enabled and logs disabled', () => {
+  it('should have Cloudflare observability configured with both logs and invocation logs enabled', () => {
     const content = fs.readFileSync(wranglerConfigPath, 'utf8');
     const config = parseJsonc(content);
 
@@ -29,8 +29,8 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     assert.ok(config.observability.logs, 'config.observability should define logs');
     assert.strictEqual(
       config.observability.logs.enabled,
-      false,
-      'observability.logs.enabled should be false'
+      true,
+      'observability.logs.enabled should be true'
     );
     assert.strictEqual(
       config.observability.logs.invocation_logs,

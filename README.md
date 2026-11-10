@@ -194,13 +194,13 @@ Cloudflare Workers Observability is configured in `wrangler.jsonc`:
 ```jsonc
 "observability": {
   "logs": {
-    "enabled": false,
+    "enabled": true,
     "invocation_logs": true
   }
 }
 ```
 
-- `logs.enabled`: Set to `false` to disable persistent log storage and optimize costs.
+- `logs.enabled`: Set to `true` to enable persistent log storage in Cloudflare Workers Logs, retaining console logs and runtime stack traces for error diagnostics and debugging.
 - `logs.invocation_logs`: Set to `true` to capture invocation traces (HTTP status code, execution duration, and timestamp) in Cloudflare's dashboard for both fetch requests and scheduled cron executions.
 
 ---

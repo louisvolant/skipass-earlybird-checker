@@ -12,10 +12,10 @@
     "binding": "ASSETS"
   },
   // Cloudflare Observability configuration
-  // Disables general log persistence while preserving invocation logs for execution traces
+  // Enables log persistence and invocation logs for execution traces and unhandled exception diagnostics
   "observability": {
     "logs": {
-      "enabled": false,
+      "enabled": true,
       "invocation_logs": true
     }
   },
