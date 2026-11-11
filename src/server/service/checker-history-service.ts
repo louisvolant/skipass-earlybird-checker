@@ -1,40 +1,39 @@
-import mongoose_client, { connectDB } from '../config/mongoose.ts';
+// src/server/service/checker-history-service.ts
+// Cloudflare D1 persistence for checker execution history.
 
-const checkerContentSchema = new mongoose_client.Schema({
-  id: Number,
-  created_at: String,
-  http_code: Number,
-  full_url: String,
-  target_date: String,
-  target_label: String,
-  price: String,
-  response_text: String,
-});
-const CheckerContentModel =
-  mongoose_client.models.checker_content ||
-  mongoose_client.model('checker_content', checkerContentSchema, 'checker_content');
+import { getDatabase } from '../db/d1.ts';
+
+export interface CheckerHistoryRecord {
+  id: number;
+  created_at: string;
+  http_code: string;
+  full_url: string;
+  target_date: string;
+  target_label: string;
+  price: number | null;
+  response_text?: string | null;
+}
 
 /**
  * Retrieve check list history.
- * Uses .lean() to return plain JavaScript objects instead of hydrated Mongoose documents,
- * drastically reducing V8 CPU execution time and memory allocations on Cloudflare Workers.
  * Adds a default limit to prevent unbounded memory growth.
  */
-export async function getCheckList(limit = 100) {
+export async function getCheckList(limit = 100): Promise<Omit<CheckerHistoryRecord, 'response_text'>[]> {
   try {
-    await connectDB();
-    const existingData = await CheckerContentModel.find({})
-      .select('-response_text')
-      .sort({ created_at: -1 })
-      .limit(limit)
-      .lean();
-
+    const db = getDatabase();
+    const query = `
+      SELECT id, created_at, http_code, full_url, target_date, target_label, price
+      FROM checker_history
+      ORDER BY id DESC
+      LIMIT ?
+    `;
+    const { results } = await db.prepare(query).bind(limit).all<Omit<CheckerHistoryRecord, 'response_text'>>();
     console.info(
-      existingData && existingData.length > 0
-        ? 'Data (CheckerContentModel) fetched from Internal MongoDB'
-        : 'No Data (CheckerContentModel) fetched from Internal MongoDB'
+      results && results.length > 0
+        ? `Data (CheckerHistory) fetched from Cloudflare D1 (${results.length} rows)`
+        : 'No Data (CheckerHistory) fetched from Cloudflare D1'
     );
-    return existingData;
+    return results;
   } catch (error) {
     console.error('Unexpected error fetching check list:', error);
     throw error;
@@ -42,25 +41,26 @@ export async function getCheckList(limit = 100) {
 }
 
 /**
- * Retrieve specific check content by ID using lean query for fast deserialization.
+ * Retrieve specific check content by ID.
  */
-export async function getCheckContent(check_id: number) {
+export async function getCheckContent(check_id: number): Promise<CheckerHistoryRecord | null> {
   try {
-    await connectDB();
-    const existingData = await CheckerContentModel.findOne({ id: check_id }).lean();
+    const db = getDatabase();
+    const query = 'SELECT * FROM checker_history WHERE id = ?';
+    const result = await db.prepare(query).bind(check_id).first<CheckerHistoryRecord>();
     console.info(
-      existingData
-        ? 'Data (CheckerContentModel) fetched from Internal MongoDB'
-        : 'No Data (CheckerContentModel) fetched from Internal MongoDB'
+      result
+        ? `Data (CheckerHistory id: ${check_id}) fetched from Cloudflare D1`
+        : `No Data (CheckerHistory id: ${check_id}) fetched from Cloudflare D1`
     );
-    return existingData;
+    return result || null;
   } catch (error) {
     console.error('Unexpected error fetching check content:', error);
     throw error;
   }
 }
 
-// Maximum length (50,000 chars) for stored raw HTML response to avoid heavy BSON serialization
+// Maximum length (50,000 chars) for stored raw HTML response to avoid heavy serialization
 // and memory consumption in Cloudflare Workers V8 isolates
 export const MAX_RESPONSE_TEXT_LENGTH = 50_000;
 
@@ -78,51 +78,57 @@ export async function saveCheckContent(
   input_full_url: string,
   input_target_date: string,
   input_target_label: string,
-  input_price: string | null,
+  input_price: string | number | null,
   input_response_text: string
-) {
+): Promise<void> {
   try {
-    await connectDB();
-    // Only query id field with lean option to minimize BSON transfer and CPU deserialization overhead
-    const maxIdDocument = await CheckerContentModel.findOne()
-      .sort({ id: -1 })
-      .select('id')
-      .lean();
-    const nextId = maxIdDocument ? Number(maxIdDocument.id) + 1 : 1;
+    const db = getDatabase();
+    const createdAt = new Date().toISOString();
+    const numericPrice = input_price != null ? Number(input_price) : null;
+    const sanitizedResponse = sanitizeResponseText(input_response_text);
 
-    const CheckerContent = new CheckerContentModel({
-      id: nextId,
-      created_at: new Date().toISOString(),
-      http_code: input_http_code,
-      full_url: input_full_url,
-      target_date: input_target_date,
-      target_label: input_target_label,
-      price: input_price,
-      response_text: sanitizeResponseText(input_response_text),
-    });
+    const query = `
+      INSERT INTO checker_history (created_at, http_code, full_url, target_date, target_label, price, response_text)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    await db
+      .prepare(query)
+      .bind(
+        createdAt,
+        input_http_code,
+        input_full_url,
+        input_target_date,
+        input_target_label,
+        numericPrice,
+        sanitizedResponse
+      )
+      .run();
 
-    await CheckerContent.save();
-    console.log('Data (CheckerContent) with ID:', nextId, 'saved to MongoDB');
+    console.info(`Data (CheckerHistory) saved to Cloudflare D1 for ${input_target_label}`);
   } catch (error) {
-    console.error('Unexpected error saving CheckerContent data from internal DB:', error);
+    console.error('Unexpected error saving CheckerContent data to Cloudflare D1:', error);
     throw error;
   }
 }
 
-export async function deleteCheckContent(checkId: number) {
+export async function deleteCheckContent(checkId: number): Promise<{ id: number } | null> {
   try {
-    await connectDB();
-    const result = await CheckerContentModel.findOneAndDelete({ id: checkId });
+    const db = getDatabase();
+    const existing = await db
+      .prepare('SELECT id FROM checker_history WHERE id = ?')
+      .bind(checkId)
+      .first<{ id: number }>();
 
-    if (!result) {
-      console.info(`No check found with ID: ${checkId} in MongoDB`);
+    if (!existing) {
+      console.info(`No check found with ID: ${checkId} in Cloudflare D1`);
       return null;
     }
 
-    console.info(`Check with ID: ${checkId} deleted from MongoDB`);
-    return result;
+    await db.prepare('DELETE FROM checker_history WHERE id = ?').bind(checkId).run();
+    console.info(`Check with ID: ${checkId} deleted from Cloudflare D1`);
+    return existing;
   } catch (error) {
-    console.error('Error deleting check from MongoDB:', error);
+    console.error('Error deleting check from Cloudflare D1:', error);
     throw error;
   }
 }

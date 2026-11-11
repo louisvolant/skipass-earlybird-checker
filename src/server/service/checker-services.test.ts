@@ -1,57 +1,106 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import mongoose from '../config/mongoose.ts';
 import {
   getCheckList,
   getCheckContent,
+  saveCheckContent,
   deleteCheckContent,
   sanitizeResponseText,
   MAX_RESPONSE_TEXT_LENGTH,
 } from './checker-history-service.ts';
 import { getConfigurations, updateConfiguration } from './checker-configuration-service.ts';
+import { resetInMemoryD1Database, setMockD1Database } from '../db/d1.ts';
 
-describe('Checker Services Mongoose Optimizations', () => {
-  it('should register CheckerContentModel with lean query capability', () => {
-    const model = mongoose.models.checker_content;
-    assert.ok(model, 'checker_content model should be defined in mongoose.models');
-
-    // Verify model query builder supports lean and limits
-    const query = model.find({}).select('-response_text').limit(50).lean();
-    assert.ok(query, 'query with lean() and limit() should be constructed');
-    assert.strictEqual(typeof query.then, 'function');
-  });
-
-  it('should register ActiveConfigurationModel with lean query capability', () => {
-    const model = mongoose.models.checker_configuration;
-    assert.ok(model, 'checker_configuration model should be defined in mongoose.models');
-
-    const query = model.find({ is_active: true }).lean();
-    assert.ok(query, 'active configuration query with lean() should be constructed');
-    assert.strictEqual(typeof query.then, 'function');
+describe('Checker Services Cloudflare D1 Integration', () => {
+  beforeEach(() => {
+    setMockD1Database(null);
+    resetInMemoryD1Database();
   });
 
   it('should export all required service methods', () => {
     assert.strictEqual(typeof getCheckList, 'function');
     assert.strictEqual(typeof getCheckContent, 'function');
+    assert.strictEqual(typeof saveCheckContent, 'function');
     assert.strictEqual(typeof deleteCheckContent, 'function');
     assert.strictEqual(typeof getConfigurations, 'function');
     assert.strictEqual(typeof updateConfiguration, 'function');
   });
 
-  it('should propagate errors cleanly if DB connection is unavailable', async () => {
-    const originalUri = process.env.MONGODB_URI;
-    const originalCluster = process.env.MONGODB_ATLAS_CLUSTER_URL;
-    delete process.env.MONGODB_URI;
-    delete process.env.MONGODB_ATLAS_CLUSTER_URL;
+  it('should fetch seeded configurations from D1', async () => {
+    const configs = await getConfigurations(false);
+    assert.ok(configs.length >= 1, 'Should have at least 1 seeded configuration');
+    assert.strictEqual(configs[0].id, 1);
+    assert.strictEqual(configs[0].target_label, 'Val Cenis');
+    assert.strictEqual(configs[0].is_active, true);
+  });
 
-    try {
-      await assert.rejects(async () => {
-        await getCheckList();
-      }, /MongoDB configuration error/);
-    } finally {
-      process.env.MONGODB_URI = originalUri;
-      process.env.MONGODB_ATLAS_CLUSTER_URL = originalCluster;
-    }
+  it('should filter active configurations when isActiveOnly is true', async () => {
+    // Deactivate config 1
+    await updateConfiguration(1, { is_active: false });
+
+    const activeOnly = await getConfigurations(true);
+    assert.strictEqual(activeOnly.length, 0);
+
+    const allConfigs = await getConfigurations(false);
+    assert.strictEqual(allConfigs.length, 1);
+    assert.strictEqual(allConfigs[0].is_active, false);
+  });
+
+  it('should update configuration fields in D1', async () => {
+    const updated = await updateConfiguration(1, {
+      target_date: '2026-12-25',
+      target_label: 'Tignes',
+      is_mail_alert: true,
+      mail_alert_address: 'snow@resort.com',
+    });
+
+    assert.strictEqual(updated.target_date, '2026-12-25');
+    assert.strictEqual(updated.target_label, 'Tignes');
+    assert.strictEqual(updated.is_mail_alert, true);
+    assert.strictEqual(updated.mail_alert_address, 'snow@resort.com');
+  });
+
+  it('should throw error when updating non-existent configuration', async () => {
+    await assert.rejects(async () => {
+      await updateConfiguration(999999, { target_label: 'Nowhere' });
+    }, /Configuration not found/);
+  });
+
+  it('should save, retrieve, and delete check history in D1', async () => {
+    await saveCheckContent(
+      '200',
+      'https://resort.example.com/passes',
+      '2026-12-20',
+      'Val Thorens',
+      49.5,
+      '<html><body>Pass Available: €49.50</body></html>'
+    );
+
+    const checkList = await getCheckList();
+    assert.ok(checkList.length >= 1);
+    const saved = checkList.find((c) => c.target_label === 'Val Thorens');
+    assert.ok(saved);
+    assert.strictEqual(saved.http_code, '200');
+    assert.strictEqual(saved.price, 49.5);
+
+    // Retrieve check content
+    const fullContent = await getCheckContent(saved.id);
+    assert.ok(fullContent);
+    assert.ok(fullContent.response_text?.includes('Pass Available: €49.50'));
+
+    // Delete check content
+    const deleted = await deleteCheckContent(saved.id);
+    assert.ok(deleted);
+    assert.strictEqual(deleted.id, saved.id);
+
+    // Verify deletion
+    const afterDelete = await getCheckContent(saved.id);
+    assert.strictEqual(afterDelete, null);
+  });
+
+  it('should return null when deleting non-existent check', async () => {
+    const result = await deleteCheckContent(888888);
+    assert.strictEqual(result, null);
   });
 
   it('should sanitize and cap oversized HTML response strings', () => {
@@ -70,5 +119,27 @@ describe('Checker Services Mongoose Optimizations', () => {
     const sanitized = sanitizeResponseText(hugeText, 100);
     assert.ok(sanitized.startsWith('a'.repeat(100)));
     assert.ok(sanitized.includes('Content truncated to 100 characters'));
+  });
+
+  it('should propagate errors cleanly if DB query fails', async () => {
+    setMockD1Database({
+      prepare() {
+        throw new Error('Simulated D1 connection error');
+      },
+      batch() {
+        throw new Error('Simulated D1 connection error');
+      },
+      exec() {
+        throw new Error('Simulated D1 connection error');
+      },
+    });
+
+    await assert.rejects(async () => {
+      await getConfigurations();
+    }, /Simulated D1 connection error/);
+
+    await assert.rejects(async () => {
+      await getCheckList();
+    }, /Simulated D1 connection error/);
   });
 });

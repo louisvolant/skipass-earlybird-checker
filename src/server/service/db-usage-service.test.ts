@@ -7,9 +7,12 @@ import {
   DB_STATS_TTL_MS,
   type DbUsageStats,
 } from './db-usage-service.ts';
+import { resetInMemoryD1Database, setMockD1Database } from '../db/d1.ts';
 
 describe('Database Usage Service Caching', () => {
   beforeEach(() => {
+    setMockD1Database(null);
+    resetInMemoryD1Database();
     clearDbUsageCache();
   });
 
@@ -33,6 +36,14 @@ describe('Database Usage Service Caching', () => {
     assert.strictEqual(result.collections, 2);
   });
 
+  it('should compute D1 statistics when cache is cold', async () => {
+    const stats = await getDbUsage();
+    assert.ok(stats.size);
+    assert.ok(stats.rawSize > 0);
+    assert.strictEqual(stats.collections, 2);
+    assert.ok(stats.objects >= 1); // at least 1 seeded configuration
+  });
+
   it('should clear cache when clearDbUsageCache is invoked', async () => {
     const mockStats: DbUsageStats = {
       size: '2.50 MB',
@@ -44,23 +55,13 @@ describe('Database Usage Service Caching', () => {
     setMockDbUsageCache(mockStats, Date.now());
     clearDbUsageCache();
 
-    // Since cache is cleared and no DB env is provided, it should attempt to connect and throw
-    const originalUri = process.env.MONGODB_URI;
-    const originalCluster = process.env.MONGODB_ATLAS_CLUSTER_URL;
-    delete process.env.MONGODB_URI;
-    delete process.env.MONGODB_ATLAS_CLUSTER_URL;
-
-    try {
-      await assert.rejects(async () => {
-        await getDbUsage();
-      }, /MongoDB configuration error/);
-    } finally {
-      process.env.MONGODB_URI = originalUri;
-      process.env.MONGODB_ATLAS_CLUSTER_URL = originalCluster;
-    }
+    // Cache should be refreshed from D1
+    const refreshed = await getDbUsage();
+    assert.notDeepStrictEqual(refreshed, mockStats);
+    assert.strictEqual(refreshed.collections, 2);
   });
 
-  it('should fall back to stale cache if refresh encounters connection error', async () => {
+  it('should fall back to stale cache if refresh encounters database error', async () => {
     const staleStats: DbUsageStats = {
       size: '0.80 MB',
       rawSize: 838860,
@@ -71,17 +72,19 @@ describe('Database Usage Service Caching', () => {
     // Stale timestamp (older than 5 minutes)
     setMockDbUsageCache(staleStats, Date.now() - 600000);
 
-    const originalUri = process.env.MONGODB_URI;
-    const originalCluster = process.env.MONGODB_ATLAS_CLUSTER_URL;
-    delete process.env.MONGODB_URI;
-    delete process.env.MONGODB_ATLAS_CLUSTER_URL;
+    setMockD1Database({
+      prepare() {
+        throw new Error('Simulated D1 failure');
+      },
+      batch() {
+        throw new Error('Simulated D1 failure');
+      },
+      exec() {
+        throw new Error('Simulated D1 failure');
+      },
+    });
 
-    try {
-      const fallbackResult = await getDbUsage();
-      assert.deepStrictEqual(fallbackResult, staleStats);
-    } finally {
-      process.env.MONGODB_URI = originalUri;
-      process.env.MONGODB_ATLAS_CLUSTER_URL = originalCluster;
-    }
+    const fallbackResult = await getDbUsage();
+    assert.deepStrictEqual(fallbackResult, staleStats);
   });
 });

@@ -1,4 +1,7 @@
-import { connectDB } from '../config/mongoose.ts';
+// src/server/service/db-usage-service.ts
+// Cloudflare D1 storage usage metrics with in-memory TTL caching.
+
+import { getDatabase } from '../db/d1.ts';
 
 export interface DbUsageStats {
   size: string;
@@ -26,7 +29,7 @@ export function setMockDbUsageCache(data: DbUsageStats, timestamp = Date.now()) 
 
 /**
  * Retrieve database storage statistics with in-memory caching to avoid
- * expensive db.stats() calls on every dashboard page visit.
+ * expensive queries on every dashboard page visit.
  */
 export async function getDbUsage(forceRefresh = false): Promise<DbUsageStats> {
   const now = Date.now();
@@ -36,21 +39,47 @@ export async function getDbUsage(forceRefresh = false): Promise<DbUsageStats> {
   }
 
   try {
-    const connection = await connectDB();
-    const db = connection.db;
+    const db = getDatabase();
 
-    if (!db) {
-      throw new Error('No MongoDB database connection available');
-    }
+    // Query user tables count
+    const tablesRow = await db
+      .prepare(
+        "SELECT COUNT(*) AS total_tables FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%';"
+      )
+      .first<{ total_tables: number }>();
+    const totalTables = tablesRow?.total_tables ?? 2;
 
-    const stats = await db.stats();
-    const sizeInMB = (stats.dataSize / (1024 * 1024)).toFixed(2);
+    // Query row counts and estimated storage size
+    const statsRow = await db
+      .prepare(`
+        SELECT 
+          (SELECT COUNT(*) FROM checker_configurations) AS config_count,
+          (SELECT COUNT(*) FROM checker_history) AS history_count,
+          (SELECT COALESCE(SUM(LENGTH(response_text) + LENGTH(full_url) + LENGTH(target_label) + 128), 0) FROM checker_history) AS history_bytes,
+          (SELECT COALESCE(SUM(LENGTH(target_label) + LENGTH(mail_alert_address) + 128), 0) FROM checker_configurations) AS config_bytes
+      `)
+      .first<{
+        config_count: number;
+        history_count: number;
+        history_bytes: number;
+        config_bytes: number;
+      }>();
+
+    const configCount = Number(statsRow?.config_count ?? 0);
+    const historyCount = Number(statsRow?.history_count ?? 0);
+    const totalObjects = configCount + historyCount;
+
+    const rawBytes = Math.max(
+      4096,
+      Number(statsRow?.history_bytes ?? 0) + Number(statsRow?.config_bytes ?? 0)
+    );
+    const sizeInMB = (rawBytes / (1024 * 1024)).toFixed(2);
 
     const result: DbUsageStats = {
       size: `${sizeInMB} MB`,
-      rawSize: stats.dataSize,
-      collections: stats.collections,
-      objects: stats.objects,
+      rawSize: rawBytes,
+      collections: totalTables,
+      objects: totalObjects,
     };
 
     cachedDbUsage = { data: result, timestamp: now };

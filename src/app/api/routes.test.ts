@@ -15,28 +15,29 @@ describe('API Route Handlers and Edge Caching', () => {
   it('GET /api/get-checks should attach Cloudflare edge cache headers', async () => {
     const response = await getChecksRoute();
     assert.ok(response);
-    if (response.status === 200) {
-      assert.strictEqual(
-        response.headers.get('Cache-Control'),
-        'public, max-age=60, s-maxage=60, stale-while-revalidate=120'
-      );
-    } else {
-      assert.strictEqual(response.status, 500);
-    }
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Cache-Control'),
+      'public, max-age=60, s-maxage=60, stale-while-revalidate=120'
+    );
+    const body = await response.json();
+    assert.strictEqual(body.success, true);
+    assert.ok(Array.isArray(body.checks));
   });
 
   it('GET /api/get-checker-configuration should attach Cloudflare edge cache headers', async () => {
     const req = new NextRequest('http://localhost:3000/api/get-checker-configuration?isActiveOnly=true');
     const response = await getCheckerConfigRoute(req);
     assert.ok(response);
-    if (response.status === 200) {
-      assert.strictEqual(
-        response.headers.get('Cache-Control'),
-        'public, max-age=60, s-maxage=60, stale-while-revalidate=300'
-      );
-    } else {
-      assert.strictEqual(response.status, 500);
-    }
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Cache-Control'),
+      'public, max-age=60, s-maxage=60, stale-while-revalidate=300'
+    );
+    const body = await response.json();
+    assert.strictEqual(body.success, true);
+    assert.ok(Array.isArray(body.configurations));
+    assert.ok(body.configurations.length >= 1);
   });
 
   it('GET /api/get-check-content should validate check_id query parameter', async () => {
@@ -79,14 +80,16 @@ describe('API Route Handlers and Edge Caching', () => {
   it('GET /api/get-db-usage should include 5-minute edge cache headers', async () => {
     const response = await getDbUsageRoute();
     assert.ok(response);
-    if (response.status === 200) {
-      assert.strictEqual(
-        response.headers.get('Cache-Control'),
-        'public, max-age=300, s-maxage=300, stale-while-revalidate=600'
-      );
-    } else {
-      assert.strictEqual(response.status, 500);
-    }
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get('Cache-Control'),
+      'public, max-age=300, s-maxage=300, stale-while-revalidate=600'
+    );
+    const body = await response.json();
+    assert.strictEqual(body.success, true);
+    assert.ok(body.dbUsage);
+    assert.strictEqual(typeof body.dbUsage.size, 'string');
+    assert.strictEqual(typeof body.dbUsage.collections, 'number');
   });
 
   it('POST /api/clear-cache should succeed and clear in-memory cache', async () => {

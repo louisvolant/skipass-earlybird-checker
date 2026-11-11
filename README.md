@@ -17,12 +17,12 @@ Built with **Next.js 16 (App Router)** and ready to deploy on **Cloudflare Worke
 └── README.md
 ```
 
-The app is a single Next.js project. The checker crawler logic, MongoDB persistence, Mailjet notifications, web dashboard, and the daily scheduled cron all run inside the same deployment — there is no separate backend server required.
+The app is a single Next.js project. The checker crawler logic, Cloudflare D1 persistence, Mailjet notifications, web dashboard, and the daily scheduled cron all run inside the same deployment — there is no separate backend server required.
 
 ## Features
 
 - **Scheduled Checks**: Automated ski resort queries running daily at 07:00 UTC (via Cloudflare Workers Cron Triggers or Vercel Crons)
-- **Customizable Search Parameters**: Configurable resort, target dates, and search terms stored in MongoDB
+- **Customizable Search Parameters**: Configurable resort, target dates, and search terms stored in Cloudflare D1
 - **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
@@ -33,7 +33,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Resilient Worker Entrypoint & Crash Prevention**: Top-level error boundary and early URL validation in the Cloudflare Worker entrypoint preventing uncaught exceptions (Error 1101) from scanner probes or runtime crashes
 - **Next.js App Router Error Boundaries**: Custom `error.tsx` and `global-error.tsx` fallback boundaries providing graceful error recovery UI and preventing rendering exceptions from bubbling to the server runtime
 - **Client Disconnect & Abort Signal Handling**: Early termination and cancellation via `request.signal` (returning HTTP 499) across API routes and resort crawler requests to abort redundant worker CPU processing when clients close connections
-- **Optimized Edge Performance & HTTP Caching**: Lightweight lean queries, bounded limits, and sanitized HTML payload capping on Mongoose models combined with Cloudflare Edge `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and BSON serialization overhead
+- **Optimized Edge Performance & HTTP Caching**: Native Cloudflare D1 SQL queries, bounded limits, and sanitized HTML payload capping combined with Cloudflare Edge `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and serialization overhead
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
@@ -43,7 +43,7 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Frontend**: React 19.3, Tailwind CSS 4.3, daisyUI 5.7
 - **Backend / Services**:
   - Next.js Route Handlers (`/app/api/.../route.ts`)
-  - MongoDB via Mongoose 9 (lazy connection with singleton caching)
+  - Cloudflare D1 (native edge SQLite with zero connection overhead and in-memory test runner harness)
   - HTTP requests via Axios 1.21
   - Mailjet Email API (`node-mailjet`)
   - HTML parsing via `htmlparser2` 12
@@ -144,7 +144,7 @@ All backend routes follow Next.js App Router conventions in `src/app/api/.../rou
 | `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations | Edge cache (60s, stale-while-revalidate 300s) |
 | `POST`| `/api/update-checker-configuration` | Update an existing checker configuration | Dynamic |
 | `POST`| `/api/clear-cache` | Invalidate cached results | Dynamic |
-| `GET` | `/api/get-db-usage` | Fetch MongoDB database size and stats | Edge cache (300s, stale-while-revalidate 600s) |
+| `GET` | `/api/get-db-usage` | Fetch Cloudflare D1 database size and stats | Edge cache (300s, stale-while-revalidate 600s) |
 | `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
 
 ---
@@ -187,7 +187,7 @@ The daily schedule is configured in `wrangler.jsonc`:
 When the cron fires at 07:00 UTC daily:
 1. Cloudflare Workers calls the `scheduled()` event handler in `worker.ts`.
 2. The handler forwards the request to `/api/scheduler` with the authorization header (`Bearer $CRON_SECRET`).
-3. The crawler queries resort availability, updates MongoDB, and sends Mailjet alerts if passes are found.
+3. The crawler queries resort availability, updates Cloudflare D1, and sends Mailjet alerts if passes are found.
 
 ### Observability & Logging
 
