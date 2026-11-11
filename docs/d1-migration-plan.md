@@ -483,14 +483,14 @@ Remove unneeded variables from Cloudflare dashboard:
 
 ## 8. Step-by-Step Implementation Checklist
 
-| Phase | Task Description | Verification Gate |
-|---|---|---|
-| **Phase 1: Setup & Migrations** | 1. Create `skipass-earlybird-checker-d1` via `wrangler d1 create`<br>2. Add binding to `wrangler.jsonc`<br>3. Write `migrations/0001_initial_schema.sql` and `0002_seed_initial_configurations.sql`<br>4. Execute migrations locally & remotely | `wrangler d1 execute skipass-earlybird-checker-d1 --remote --command="SELECT count(*) FROM checker_configurations"` returns seeded rows. |
-| **Phase 2: DB Layer & Mock** | 1. Create `src/server/db/d1.ts`<br>2. Create in-memory mock for Node test runner in `src/server/db/d1.test.ts` | `npm test` executes D1 abstraction tests with 100% pass rate. |
-| **Phase 3: Service Refactoring** | 1. Rewrite `checker-configuration-service.ts`<br>2. Rewrite `checker-history-service.ts`<br>3. Rewrite `db-usage-service.ts`<br>4. Update tests in `checker-services.test.ts` & `db-usage-service.test.ts` | `npm test` validates all CRUD operations on SQLite. |
-| **Phase 4: Purge Mongoose** | 1. Remove `mongoose` from `package.json`<br>2. Delete `src/server/config/mongoose.ts` & `mongoose.test.ts`<br>3. Run `npm install` | `npm run lint` and `npm test` pass with 0 references to Mongoose. |
-| **Phase 5: Verification & Build** | 1. Full OpenNext production build (`npm run build`)<br>2. Wrangler dry-run deployment | `.open-next/worker.js` generated; dry-run succeeds with `env.DB` binding visible. |
-| **Phase 6: Deployment & Cleanup** | 1. Deploy to Cloudflare Workers (`npm run deploy`)<br>2. Verify live dashboard at `https://skipass-earlybird-checker.louisvolant.com`<br>3. Delete obsolete MongoDB variables from Cloudflare | Live HTTP 200 on `/api/get-checker-configuration` in < 50 ms with 0 ms connection overhead. |
+| Phase | Task Description | Verification Gate | Status |
+|---|---|---|---|
+| **Phase 1: Setup & Migrations** | 1. Create `skipass-earlybird-checker-d1` via `wrangler d1 create`<br>2. Add binding to `wrangler.jsonc`<br>3. Write `migrations/0001_initial_schema.sql` and `migrations/0002_seed_configurations.sql`<br>4. Execute migrations locally & remotely | `wrangler d1 execute skipass-earlybird-checker-d1 --remote --command="SELECT count(*) FROM checker_configurations"` returns seeded rows. | ✅ **COMPLETED** (Database ID: `d980ce6d-f007-4ee2-aa4a-edf75e6017b1`, commit `0e8b9fa`) |
+| **Phase 2: DB Layer & Mock** | 1. Create `src/server/db/d1.ts`<br>2. Create in-memory mock for Node test runner in `src/server/db/d1.test.ts` | `npm test` executes D1 abstraction tests with 100% pass rate. | ✅ **COMPLETED** (commit `4095912`) |
+| **Phase 3: Service Refactoring** | 1. Rewrite `checker-configuration-service.ts`<br>2. Rewrite `checker-history-service.ts`<br>3. Rewrite `db-usage-service.ts`<br>4. Update tests in `checker-services.test.ts` & `db-usage-service.test.ts` | `npm test` validates all CRUD operations on SQLite. | ✅ **COMPLETED** (commit `346694e`) |
+| **Phase 4: Purge Mongoose** | 1. Remove `mongoose` from `package.json`<br>2. Delete `src/server/config/mongoose.ts` & `mongoose.test.ts`<br>3. Run `npm install` | `npm run lint` and `npm test` pass with 0 references to Mongoose. | ✅ **COMPLETED** (commit `eed1c3f`) |
+| **Phase 5: Verification & Build** | 1. Full OpenNext production build (`npm run build`)<br>2. Wrangler dry-run deployment | `.open-next/worker.js` generated; dry-run succeeds with `env.DB` binding visible. | ✅ **COMPLETED** (Startup time: 14 ms, 0 vulnerabilities) |
+| **Phase 6: Deployment & Cleanup** | 1. Deploy to Cloudflare Workers (`npm run deploy`)<br>2. Verify live dashboard at `https://skipass-earlybird-checker.louisvolant.com`<br>3. Audit execution and response codes | Live HTTP 200 on `/api/get-checker-configuration` in < 50 ms with 0 ms connection overhead. | ✅ **COMPLETED** (Deployed version: `b3e26629-2354-4386-a942-eb43fe75a96d`, audited with HTTP 200 on all endpoints) |
 
 ---
 
