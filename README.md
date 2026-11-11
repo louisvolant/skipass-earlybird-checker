@@ -246,6 +246,16 @@ npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migration
 npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --command="SELECT name FROM sqlite_master WHERE type='table';" --yes
 ```
 
+### Import Data from MongoDB Atlas to Cloudflare D1
+
+To migrate historical data and configurations directly from MongoDB Atlas into Cloudflare D1:
+
+```bash
+MONGODB_URI="mongodb+srv://<USER>:<PASSWORD>@cluster0.flrom.mongodb.net/SkipassEarlybirdCheckerDB?retryWrites=true&w=majority" npm run migrate:mongo-to-d1
+```
+
+The script extracts all documents, generates optimized SQLite inserts, executes them on the remote `skipass-earlybird-checker-d1` database, and audits the total row counts. Add `--local` to target the local development D1 database.
+
 ### Security & Dependency Overrides
 
 The repository uses npm package `overrides` in `package.json` to secure transitive dependencies (such as `glob` and `minimatch`) without breaking Cloudflare OpenNext adapter compatibility, achieving 0 vulnerabilities in `npm audit`.

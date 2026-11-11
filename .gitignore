@@ -56,3 +56,6 @@ build/
 .wrangler/
 .dev.vars
 cloudflare-env.d.ts
+
+# Migration dumps
+migrations/mongo_import_dump*.sql
