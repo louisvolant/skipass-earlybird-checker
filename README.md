@@ -231,6 +231,13 @@ npm run build:next
 npx wrangler deploy --dry-run
 ```
 
+### Cloudflare D1 Database Client & In-Memory Test Harness
+
+The application provides a unified D1 database interface at `src/server/db/d1.ts`:
+- In Cloudflare Workers runtime (or preview), it resolves the native D1 binding (`env.DB`) from OpenNext or worker context.
+- In Node.js testing environments (`npm test`), it seamlessly initializes an in-memory SQLite database via Node's native `node:sqlite` (`DatabaseSync(':memory:')`), applying all SQL migrations automatically without external dependencies.
+- Custom database mocks can be registered with `setMockD1Database()` for isolated unit testing.
+
 ### Cloudflare D1 Database Migrations
 
 Apply and verify database schema migrations on Cloudflare D1:
