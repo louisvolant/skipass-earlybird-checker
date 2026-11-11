@@ -6,7 +6,7 @@ initOpenNextCloudflareForDev();
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {},
-  serverExternalPackages: ['mongoose', 'node-mailjet'],
+  serverExternalPackages: ['node-mailjet'],
 };
 
 export default nextConfig;

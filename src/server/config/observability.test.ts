@@ -65,7 +65,7 @@ describe('Cloudflare Observability and Wrangler configuration', () => {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 
     assert.ok(pkg.dependencies.axios, 'axios dependency should exist');
-    assert.ok(pkg.dependencies.mongoose, 'mongoose dependency should exist');
+    assert.strictEqual(pkg.dependencies.mongoose, undefined, 'obsolete mongoose dependency should be removed');
     assert.ok(pkg.dependencies.react, 'react dependency should exist');
     assert.ok(pkg.dependencies['@vercel/speed-insights'], '@vercel/speed-insights should exist');
     assert.ok(pkg.devDependencies.tailwindcss, 'tailwindcss devDependency should exist');

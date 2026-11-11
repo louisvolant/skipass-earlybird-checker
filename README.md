@@ -8,7 +8,7 @@ Built with **Next.js 16 (App Router)** and ready to deploy on **Cloudflare Worke
 
 ```
 ├── src/app/          Next.js App Router pages and API route handlers (/api/*)
-├── src/server/       Server-only logic (Mongoose models, Mailjet, crawler service)
+├── src/server/       Server-only logic (D1 database client, Mailjet, crawler service)
 ├── src/lib/          Client API client and TypeScript interfaces
 ├── public/           Static assets and Cloudflare cache headers (_headers)
 ├── open-next.config.ts OpenNext Cloudflare adapter configuration
@@ -56,8 +56,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 
 - **Node.js**: 20.9 or higher (developed and tested with Node 24 LTS)
 - **npm**: 10+ (bundled with Node.js)
-- **Cloudflare Account**: For deploying to Cloudflare Workers (free or paid plan)
-- **MongoDB Atlas Database**: Free M0 tier or dedicated cluster
+- **Cloudflare Account**: For deploying to Cloudflare Workers with D1 (free or paid plan)
 - **Mailjet Account**: API credentials for sending email notifications
 
 ---
@@ -82,12 +81,6 @@ All configuration is managed via environment variables.
 
 | Variable | Description | Example |
 |---|---|---|
-| `MONGODB_URI` | *(Optional)* Full MongoDB connection string. If provided, overrides individual Atlas vars. | `mongodb+srv://user:pass@cluster.mongodb.net/dbname` |
-| `MONGODB_ATLAS_USERNAME` | MongoDB Atlas username | `myuser` |
-| `MONGODB_ATLAS_PASSWORD` | MongoDB Atlas password | `mypassword` |
-| `MONGODB_ATLAS_CLUSTER_URL`| MongoDB Atlas cluster host | `cluster0.abcde.mongodb.net` |
-| `MONGODB_ATLAS_DB_NAME` | Target MongoDB database name | `skipass_checker` |
-| `MONGODB_ATLAS_APP_NAME` | Atlas application identifier | `Cluster0` |
 | `MAILJET_API_KEY` | Mailjet public API key | `...` |
 | `MAILJET_SECRET_KEY` | Mailjet secret API key | `...` |
 | `MAIL_ORIGIN_ADDRESS` | Sender email address registered in Mailjet | `alerts@example.com` |
