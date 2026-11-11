@@ -27,7 +27,8 @@ The app is a single Next.js project. The checker crawler logic, MongoDB persiste
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
 - **Dark Mode Support**: DaisyUI theme switching
-- **Database Usage Display & Edge Caching**: Real-time MongoDB collection size and object count monitoring with in-memory TTL caching and Cloudflare Edge Cache-Control headers
+- **Cloudflare D1 Database & SQLite Migrations**: Serverless SQLite persistence running natively on Cloudflare edge via D1 (`skipass-earlybird-checker-d1`) with automated schema migrations
+- **Database Usage Display & Edge Caching**: Real-time database size and object count monitoring with in-memory TTL caching and Cloudflare Edge Cache-Control headers
 - **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
 - **Resilient Worker Entrypoint & Crash Prevention**: Top-level error boundary and early URL validation in the Cloudflare Worker entrypoint preventing uncaught exceptions (Error 1101) from scanner probes or runtime crashes
 - **Next.js App Router Error Boundaries**: Custom `error.tsx` and `global-error.tsx` fallback boundaries providing graceful error recovery UI and preventing rendering exceptions from bubbling to the server runtime
@@ -228,6 +229,21 @@ npm run build:next
 
 # Dry run deployment verification
 npx wrangler deploy --dry-run
+```
+
+### Cloudflare D1 Database Migrations
+
+Apply and verify database schema migrations on Cloudflare D1:
+
+```bash
+# Execute schema migration on remote D1 database
+npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migrations/0001_initial_schema.sql --yes
+
+# Execute baseline configurations seed on remote D1
+npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migrations/0002_seed_configurations.sql --yes
+
+# Query remote D1 tables
+npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --command="SELECT name FROM sqlite_master WHERE type='table';" --yes
 ```
 
 ### Security & Dependency Overrides

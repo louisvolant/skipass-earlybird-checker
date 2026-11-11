@@ -11,6 +11,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "skipass-earlybird-checker-d1",
+      "database_id": "d980ce6d-f007-4ee2-aa4a-edf75e6017b1"
+    }
+  ],
   // Cloudflare Observability configuration
   // Enables log persistence and invocation logs for execution traces and unhandled exception diagnostics
   "observability": {
