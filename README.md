@@ -88,6 +88,7 @@ All configuration is managed via environment variables.
 | `MAIL_ORIGIN_ADDRESS` | Sender email address registered in Mailjet | `alerts@example.com` |
 | `BASE_SKI_RESORT_URL` | Base resort website URL | `https://www.resort.com` |
 | `BASE_SKI_RESORT_URL_SHOP`| Resort shopping/booking search URL | `https://shop.resort.com/fr/pass` |
+| `SKI_RESORT_COOKIE` | *(Optional)* Session cookies forwarded to the resort shop when it requires an authenticated session | `_rtopia_session_id=...` |
 | `CRON_SECRET` | *(Required for the cron)* Bearer token protecting `/api/scheduler`. The scheduler **fails closed** (rejects every request) while it is unset. | `my-secure-token` |
 
 ### Environment Variables on Cloudflare Workers
@@ -280,6 +281,8 @@ The script extracts all documents, generates optimized SQLite inserts, executes 
 ### Security & Dependency Overrides
 
 The repository uses npm package `overrides` in `package.json` to secure transitive dependencies (such as `glob` and `minimatch`) without breaking Cloudflare OpenNext adapter compatibility, achieving 0 vulnerabilities in `npm audit`.
+
+> **Cookie hygiene**: the resort session cookies used to be hardcoded in the crawler source. They have been removed and must be provided via the `SKI_RESORT_COOKIE` environment variable instead. A session identifier that was ever committed to source control must be considered compromised: **revoke it on the resort website** and use a fresh one. To scrub it from the Git history, run `npx git-filter-repo --replace-text <(echo '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a==>REMOVED')` before making the repository public.
 
 ---
 

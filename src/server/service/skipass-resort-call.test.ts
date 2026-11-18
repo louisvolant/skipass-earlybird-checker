@@ -1,6 +1,33 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as htmlparser2 from 'htmlparser2';
+import { buildResortHeaders } from './skipass-resort-call.ts';
+
+describe('Resort Request Headers', () => {
+  it('should not attach any Cookie header when SKI_RESORT_COOKIE is not configured', () => {
+    const original = process.env.SKI_RESORT_COOKIE;
+    delete process.env.SKI_RESORT_COOKIE;
+    try {
+      const headers = buildResortHeaders();
+      assert.strictEqual(headers.Cookie, undefined);
+      assert.ok(headers['User-Agent']);
+    } finally {
+      if (original !== undefined) process.env.SKI_RESORT_COOKIE = original;
+    }
+  });
+
+  it('should attach only the explicitly configured session cookie', () => {
+    const original = process.env.SKI_RESORT_COOKIE;
+    process.env.SKI_RESORT_COOKIE = 'my_session=abc123; other=xyz';
+    try {
+      const headers = buildResortHeaders();
+      assert.strictEqual(headers.Cookie, 'my_session=abc123; other=xyz');
+    } finally {
+      if (original !== undefined) process.env.SKI_RESORT_COOKIE = original;
+      else delete process.env.SKI_RESORT_COOKIE;
+    }
+  });
+});
 
 describe('HTML Parser Service (htmlparser2 v12)', () => {
   it('should parse resort product rows and extract link and button texts', () => {

@@ -5,8 +5,32 @@ import { getConfigurations } from './checker-configuration-service.ts';
 import { saveCheckContent } from './checker-history-service.ts';
 import type { CheckResult } from './mailer-service.ts';
 
-const url = process.env.BASE_SKI_RESORT_URL;
 const searchUrl = process.env.BASE_SKI_RESORT_URL_SHOP;
+
+// Optional authenticated session cookies for the resort shop, provided via the
+// SKI_RESORT_COOKIE environment variable. Never hardcode cookie values in
+// source control: any committed session identifier must be considered
+// compromised and revoked on the target site.
+
+/**
+ * Build the request headers sent to the resort website.
+ * Session cookies are only attached when explicitly configured.
+ */
+export function buildResortHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+  };
+  const referer = process.env.BASE_SKI_RESORT_URL;
+  if (referer) {
+    headers.Referer = referer;
+  }
+  const resortCookie = process.env.SKI_RESORT_COOKIE;
+  if (resortCookie) {
+    headers.Cookie = resortCookie;
+  }
+  return headers;
+}
 
 async function performCheckForConfig(
   config: {
@@ -23,13 +47,7 @@ async function performCheckForConfig(
     throw new Error('Check aborted: client disconnected');
   }
   const { target_date: dateToCheck, target_label: searchTerm } = config;
-  const custom_headers = {
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-    Referer: url,
-    Cookie:
-      '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a; __stripe_mid=bfd1450a-ce8d-4662-8628-af786988fdaf; __stripe_sid=8ce2e24f-06b6-486c-ab38-4edd88c17e44',
-  };
+  const custom_headers = buildResortHeaders();
 
   try {
     // In Node.js environments, use an Agent to bypass SSL cert issues if needed;
