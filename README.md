@@ -292,6 +292,8 @@ The repository uses npm package `overrides` in `package.json` to secure transiti
 
 > **Private response caching**: API responses containing customer data use `Cache-Control: private` so they stay in the end user's browser cache only. Shared proxies and the Cloudflare edge cache never store them, since cached responses would be served without re-evaluating the admin session.
 
+> **Next.js security upgrades**: Next.js is kept on the latest patched release (`16.4.6+`) because `16.2.0–16.4.4` is affected by two information disclosure advisories ([GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h) and [GHSA-vc7v-qv4w-wrv8](https://github.com/advisories/GHSA-vc7v-qv4w-wrv8), cached root param leaks via `use cache` / `unstable_cache()`). After any dependency change, run `npm audit` and `npm run build` to confirm the runtime stays clean.
+
 ---
 
 ## License
