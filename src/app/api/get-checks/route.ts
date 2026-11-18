@@ -26,8 +26,10 @@ export async function GET(req?: NextRequest) {
       { success: true, checks: formattedData },
       {
         headers: {
-          // Cache on Cloudflare edge for 60 seconds to avoid repeating DB queries on page refreshes
-          'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=120',
+          // Private browser caching only: check history contains customer-related
+          // data and must never be stored in shared or Cloudflare edge caches,
+          // where authorization would not be re-evaluated on later requests.
+          'Cache-Control': 'private, max-age=60',
         },
       }
     );

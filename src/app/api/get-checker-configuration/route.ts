@@ -27,8 +27,9 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          // Cache on Cloudflare edge for 60 seconds to avoid repeating DB queries on dashboard views
-          'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=300',
+          // Private browser caching only: configurations contain customer PII
+          // (masked emails, contact names) that must never reach shared caches.
+          'Cache-Control': 'private, max-age=60',
         },
       }
     );

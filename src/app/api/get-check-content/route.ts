@@ -33,8 +33,9 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          // Check content is immutable once recorded; cache at edge for 24h to avoid large BSON queries
-          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
+          // Check content is immutable once recorded, but it sits behind admin
+          // authentication: keep it in the private browser cache only.
+          'Cache-Control': 'private, max-age=3600',
         },
       }
     );

@@ -29,12 +29,12 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
 - **Dark Mode Support**: DaisyUI theme switching
 - **Cloudflare D1 Database & SQLite Migrations**: Serverless SQLite persistence running natively on Cloudflare edge via D1 (`skipass-earlybird-checker-d1`) with automated schema migrations
-- **Database Usage Display & Edge Caching**: Real-time database size and object count monitoring with in-memory TTL caching and Cloudflare Edge Cache-Control headers
+- **Database Usage Display & Private Response Caching**: Real-time database size and object count monitoring with in-memory TTL caching and private `Cache-Control` response headers (customer data is never stored in shared or Cloudflare edge caches, where session authorization would not be re-evaluated)
 - **Cloudflare Observability**: Built-in Workers observability with invocation logs tracking execution status and durations
 - **Resilient Worker Entrypoint & Crash Prevention**: Top-level error boundary and early URL validation in the Cloudflare Worker entrypoint preventing uncaught exceptions (Error 1101) from scanner probes or runtime crashes
 - **Next.js App Router Error Boundaries**: Custom `error.tsx` and `global-error.tsx` fallback boundaries providing graceful error recovery UI and preventing rendering exceptions from bubbling to the server runtime
 - **Client Disconnect & Abort Signal Handling**: Early termination and cancellation via `request.signal` (returning HTTP 499) across API routes and resort crawler requests to abort redundant worker CPU processing when clients close connections
-- **Optimized Edge Performance & HTTP Caching**: Native Cloudflare D1 SQL queries, bounded limits, and sanitized HTML payload capping combined with Cloudflare Edge `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and serialization overhead
+- **Optimized Edge Performance & HTTP Caching**: Native Cloudflare D1 SQL queries, bounded limits, and sanitized HTML payload capping combined with private `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and serialization overhead
 - **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
 
 ## Tech Stack
@@ -138,14 +138,14 @@ All backend routes follow Next.js App Router conventions in `src/app/api/.../rou
 | `POST`| `/api/auth/login` | Verify admin password (`{ "password": "..." }`) and issue a signed HttpOnly session cookie | Public (self-guarded) |
 | `GET` | `/api/auth/session` | Probe the current session (200 when authenticated, 401 otherwise) | Public (self-guarded) |
 | `POST`| `/api/auth/logout` | Clear the admin session cookie | Public (self-guarded) |
-| `GET` | `/api/get-checks` | Fetch recent check history | Edge cache (60s, stale-while-revalidate 120s) |
-| `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check | Edge cache (24h immutable history) |
+| `GET` | `/api/get-checks` | Fetch recent check history | Private cache (60s) |
+| `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check | Private cache (1h immutable history) |
 | `POST`| `/api/delete-check-content` | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
 | `POST`| `/api/force-check` | Manually run crawler checks across active configurations | Dynamic |
-| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations | Edge cache (60s, stale-while-revalidate 300s) |
+| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations | Private cache (60s) |
 | `POST`| `/api/update-checker-configuration` | Update an existing checker configuration | Dynamic |
 | `POST`| `/api/clear-cache` | Invalidate cached results | Dynamic |
-| `GET` | `/api/get-db-usage` | Fetch Cloudflare D1 database size and stats | Edge cache (300s, stale-while-revalidate 600s) |
+| `GET` | `/api/get-db-usage` | Fetch Cloudflare D1 database size and stats | Private cache (5 min) |
 | `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
 
 ---
@@ -287,6 +287,8 @@ The repository uses npm package `overrides` in `package.json` to secure transiti
 > **TLS enforcement**: the crawler always performs HTTPS requests with certificate verification enabled (`rejectUnauthorized` is never disabled). A man-in-the-middle must not be able to inject forged content into the stored check history.
 
 > **Payload validation & email escaping**: every field sent to `POST /api/update-checker-configuration` is validated server-side (email format, `YYYY-MM-DD` dates, bounded text lengths, strict booleans) before it reaches the database, and all values interpolated into alert emails are HTML-escaped — preventing email body injection and silent redirection of customer alerts to arbitrary addresses. Mailjet API payloads (containing recipient PII) are never written to logs.
+
+> **Private response caching**: API responses containing customer data use `Cache-Control: private` so they stay in the end user's browser cache only. Shared proxies and the Cloudflare edge cache never store them, since cached responses would be served without re-evaluating the admin session.
 
 ---
 

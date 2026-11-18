@@ -14,8 +14,9 @@ export async function GET(req?: NextRequest) {
       { success: true, dbUsage },
       {
         headers: {
-          // Cache on Cloudflare edge for 5 minutes, serve stale while revalidating for 10 minutes
-          'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
+          // Private browser caching for 5 minutes: usage stats must never be
+          // stored in shared caches where authorization is not re-evaluated.
+          'Cache-Control': 'private, max-age=300',
         },
       }
     );
