@@ -286,6 +286,8 @@ The repository uses npm package `overrides` in `package.json` to secure transiti
 
 > **TLS enforcement**: the crawler always performs HTTPS requests with certificate verification enabled (`rejectUnauthorized` is never disabled). A man-in-the-middle must not be able to inject forged content into the stored check history.
 
+> **Payload validation & email escaping**: every field sent to `POST /api/update-checker-configuration` is validated server-side (email format, `YYYY-MM-DD` dates, bounded text lengths, strict booleans) before it reaches the database, and all values interpolated into alert emails are HTML-escaped — preventing email body injection and silent redirection of customer alerts to arbitrary addresses. Mailjet API payloads (containing recipient PII) are never written to logs.
+
 ---
 
 ## License

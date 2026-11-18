@@ -1,4 +1,5 @@
 import { getMailjet } from '../config/mailjet.ts';
+import { escapeHtml } from '../utils/html-utils.ts';
 
 export type CheckResult = {
   configId: number | string;
@@ -15,7 +16,14 @@ export async function sendMail(checkResults: CheckResult[]) {
   try {
     const messages = checkResults
       .filter((result) => result.found === true && result.is_mail_alert === true)
-      .map((result) => ({
+      .map((result) => {
+        // Configuration fields are user controlled and are interpolated into
+        // the email body: escape them to prevent HTML injection into alerts.
+        const safeLabel = escapeHtml(result.target_label);
+        const safeDate = escapeHtml(result.target_date);
+        const safePrice = escapeHtml(result.price ?? '');
+        const safeContact = escapeHtml(result.mail_alert_contact);
+        return {
         From: {
           Email: process.env.MAIL_ORIGIN_ADDRESS,
           Name: 'Skipass Earlybird Checker',
@@ -23,23 +31,24 @@ export async function sendMail(checkResults: CheckResult[]) {
         To: [
           {
             Email: result.mail_alert_address || 'default@example.com',
-            Name: result.mail_alert_contact || 'User',
+            Name: safeContact || 'User',
           },
         ],
-        Subject: `Skipass Available for ${result.target_label}`,
-        TextPart: `Good news! Skipass is available for ${result.target_label} on ${result.target_date}${result.price ? ` for €${result.price}` : ''}.`,
+        Subject: `Skipass Available for ${safeLabel}`,
+        TextPart: `Good news! Skipass is available for ${safeLabel} on ${safeDate}${result.price ? ` for €${safePrice}` : ''}.`,
         HTMLPart: `
           <h3>Skipass Availability Alert</h3>
           <p>Good news! We found available skipasses for:</p>
           <ul>
-            <li><strong>Location:</strong> ${result.target_label}</li>
-            <li><strong>Date:</strong> ${result.target_date}</li>
-            ${result.price ? `<li><strong>Price:</strong> €${result.price}</li>` : ''}
+            <li><strong>Location:</strong> ${safeLabel}</li>
+            <li><strong>Date:</strong> ${safeDate}</li>
+            ${result.price ? `<li><strong>Price:</strong> €${safePrice}</li>` : ''}
           </ul>
           <p>Book now before they're gone!</p>
           <p>Sent via Skipass Earlybird Checker</p>
         `,
-      }));
+        };
+      });
 
     if (messages.length === 0) {
       console.log('No mail alerts to send (either no skipasses found or no mail alerts enabled)');
@@ -48,11 +57,12 @@ export async function sendMail(checkResults: CheckResult[]) {
 
     const result = await getMailjet().post('send', { version: 'v3.1' }).request({ Messages: messages });
 
-    console.log('Mailjet response:', result.body);
+    // Log only the outcome, never the API payload: recipient addresses are
+    // customer PII and Workers observability persists console output.
+    console.log(`Mail sending completed successfully: ${messages.length} message(s) sent`);
     return {
       status: 'success',
       messagesSent: messages.length,
-      response: result.body,
     };
   } catch (error) {
     console.error('Error sending mail:', error);

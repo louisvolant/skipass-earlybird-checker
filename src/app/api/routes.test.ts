@@ -77,6 +77,28 @@ describe('API Route Handlers and Edge Caching', () => {
     assert.strictEqual(body.error, 'Configuration ID is required');
   });
 
+  it('POST /api/update-checker-configuration should reject invalid customer fields', async () => {
+    const cases: Array<Record<string, unknown>, string> = [
+      [{ id: 1, mail_alert_address: 'not-an-email' }, 'Invalid mail_alert_address: valid email address expected'],
+      [{ id: 1, mail_alert_address: 'evil@example.com<script>' }, 'Invalid mail_alert_address: valid email address expected'],
+      [{ id: 1, targetDate: '20/12/2026' }, 'Invalid targetDate: YYYY-MM-DD expected'],
+      [{ id: 1, targetLabel: '' }, 'Invalid targetLabel: non-empty text of 100 characters max expected'],
+      [{ id: 1, mail_alert_contact: '<img src=x onerror=alert(1)>' }, 'Invalid mail_alert_contact: non-empty text of 100 characters max expected'],
+      [{ id: 1, is_active: 'yes' }, 'Invalid is_active: boolean expected'],
+    ];
+
+    for (const [payload, expectedError] of cases) {
+      const req = new NextRequest('http://localhost:3000/api/update-checker-configuration', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const res = await updateCheckerConfigRoute(req);
+      assert.strictEqual(res.status, 400, `expected 400 for payload: ${JSON.stringify(payload)}`);
+      const body = await res.json();
+      assert.strictEqual(body.error, expectedError);
+    }
+  });
+
   it('GET /api/get-db-usage should include 5-minute edge cache headers', async () => {
     const response = await getDbUsageRoute();
     assert.ok(response);
