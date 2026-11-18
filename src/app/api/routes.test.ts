@@ -102,6 +102,13 @@ describe('API Route Handlers and Edge Caching', () => {
   it('GET /api/scheduler should enforce CRON_SECRET authorization', async () => {
     const originalSecret = process.env.CRON_SECRET;
     try {
+      // Fail closed: without a configured CRON_SECRET the scheduler must
+      // refuse every request instead of auto-approving them.
+      delete process.env.CRON_SECRET;
+      const unsetReq = new NextRequest('http://localhost:3000/api/scheduler');
+      const unsetRes = await schedulerRoute(unsetReq);
+      assert.strictEqual(unsetRes.status, 401);
+
       process.env.CRON_SECRET = 'secret-test-token-123';
 
       // Unauthorized request (no token)
@@ -117,6 +124,13 @@ describe('API Route Handlers and Edge Caching', () => {
       });
       const invalidRes = await schedulerRoute(invalidReq);
       assert.strictEqual(invalidRes.status, 401);
+
+      // Non-Bearer Authorization header must not be accepted
+      const nonBearerReq = new NextRequest('http://localhost:3000/api/scheduler', {
+        headers: { Authorization: 'secret-test-token-123' },
+      });
+      const nonBearerRes = await schedulerRoute(nonBearerReq);
+      assert.strictEqual(nonBearerRes.status, 401);
     } finally {
       if (originalSecret !== undefined) {
         process.env.CRON_SECRET = originalSecret;

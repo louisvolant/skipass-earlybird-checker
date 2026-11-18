@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server.js';
 import { checkSkiPassStation } from '../../../server/service/skipass-resort-call.ts';
 import { sendMail } from '../../../server/service/mailer-service.ts';
+import { timingSafeEqualString } from '../../../server/utils/crypto-utils.ts';
 
 export const dynamic = 'force-dynamic';
 // Hobby plan caps serverless maxDuration at 60s.
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
-  const authToken = req.headers.get('Authorization') || '';
-  const bearerToken = authToken.replace('Bearer ', '');
+  // Fail closed: without a configured CRON_SECRET the scheduler must never run,
+  // otherwise anyone could trigger crawler checks and email sending.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('CRON_SECRET is not configured: refusing to run the scheduler (fail closed)');
+    return NextResponse.json(
+      { error: 'Unauthorized: scheduler is disabled until CRON_SECRET is configured' },
+      { status: 401 }
+    );
+  }
 
-  const isCronInvocation = process.env.CRON_SECRET ? bearerToken === process.env.CRON_SECRET : true;
+  // Strict "Bearer <token>" parsing (avoids replace() that could mangle values).
+  const authHeader = req.headers.get('authorization') ?? '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : '';
 
-  if (!isCronInvocation) {
+  // Constant-time comparison prevents leaking the secret through response timing.
+  if (!(await timingSafeEqualString(bearerToken, cronSecret))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

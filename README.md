@@ -88,7 +88,7 @@ All configuration is managed via environment variables.
 | `MAIL_ORIGIN_ADDRESS` | Sender email address registered in Mailjet | `alerts@example.com` |
 | `BASE_SKI_RESORT_URL` | Base resort website URL | `https://www.resort.com` |
 | `BASE_SKI_RESORT_URL_SHOP`| Resort shopping/booking search URL | `https://shop.resort.com/fr/pass` |
-| `CRON_SECRET` | *(Optional)* Bearer token protecting `/api/scheduler` | `my-secure-token` |
+| `CRON_SECRET` | *(Required for the cron)* Bearer token protecting `/api/scheduler`. The scheduler **fails closed** (rejects every request) while it is unset. | `my-secure-token` |
 
 ### Environment Variables on Cloudflare Workers
 
@@ -200,7 +200,8 @@ The daily schedule is configured in `wrangler.jsonc`:
 When the cron fires at 07:00 UTC daily:
 1. Cloudflare Workers calls the `scheduled()` event handler in `worker.ts`.
 2. The handler forwards the request to `/api/scheduler` with the authorization header (`Bearer $CRON_SECRET`).
-3. The crawler queries resort availability, updates Cloudflare D1, and sends Mailjet alerts if passes are found.
+3. The route handler verifies the token with a **constant-time comparison** and **fails closed** while `CRON_SECRET` is not configured (the scheduler never runs unguarded).
+4. The crawler queries resort availability, updates Cloudflare D1, and sends Mailjet alerts if passes are found.
 
 ### Observability & Logging
 
