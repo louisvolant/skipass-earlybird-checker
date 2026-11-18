@@ -284,6 +284,8 @@ The repository uses npm package `overrides` in `package.json` to secure transiti
 
 > **Cookie hygiene**: the resort session cookies used to be hardcoded in the crawler source. They have been removed and must be provided via the `SKI_RESORT_COOKIE` environment variable instead. A session identifier that was ever committed to source control must be considered compromised: **revoke it on the resort website** and use a fresh one. To scrub it from the Git history, run `npx git-filter-repo --replace-text <(echo '_rtopia_session_id=pKoDOrCTABGbEcq7aSlO0K8ZDTABGbEcq7a==>REMOVED')` before making the repository public.
 
+> **TLS enforcement**: the crawler always performs HTTPS requests with certificate verification enabled (`rejectUnauthorized` is never disabled). A man-in-the-middle must not be able to inject forged content into the stored check history.
+
 ---
 
 ## License

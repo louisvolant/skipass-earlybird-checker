@@ -1,6 +1,5 @@
 import axios from 'axios';
 import * as htmlparser2 from 'htmlparser2';
-import https from 'https';
 import { getConfigurations } from './checker-configuration-service.ts';
 import { saveCheckContent } from './checker-history-service.ts';
 import type { CheckResult } from './mailer-service.ts';
@@ -50,22 +49,13 @@ async function performCheckForConfig(
   const custom_headers = buildResortHeaders();
 
   try {
-    // In Node.js environments, use an Agent to bypass SSL cert issues if needed;
-    // In Cloudflare Workers/edge environments, https.Agent is either unavailable or unnecessary.
-    let httpsAgent: unknown;
-    try {
-      if (typeof https !== 'undefined' && https?.Agent) {
-        httpsAgent = new https.Agent({ rejectUnauthorized: false });
-      }
-    } catch {
-      // Ignored on non-Node runtimes
-    }
-
+    // TLS certificate verification is always left enabled: the crawler must
+    // never accept a spoofed certificate that would let a man-in-the-middle
+    // inject arbitrary content into the stored check history.
     const response = await axios.get(searchUrl!, {
       params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
       signal,
-      ...(httpsAgent ? { httpsAgent } : {}),
     });
 
     console.log(`Response data length: ${response.data.length}`);
