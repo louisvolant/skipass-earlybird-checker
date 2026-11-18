@@ -98,8 +98,8 @@ Example `migrations/0002_seed_initial_configurations.sql`:
 ```sql
 INSERT INTO checker_configurations (id, is_active, target_date, target_label, is_mail_alert, mail_alert_address, mail_alert_contact)
 VALUES 
-  (1, 1, '2026-12-20', 'Val Cenis Journée', 1, 'alerts@example.com', 'Louis Volant'),
-  (2, 1, '2027-01-15', 'Val Cenis 6 Jours', 1, 'alerts@example.com', 'Louis Volant')
+  (1, 1, '2026-12-20', 'Val Cenis Journée', 1, 'alerts@example.com', 'Admin User'),
+  (2, 1, '2027-01-15', 'Val Cenis 6 Jours', 1, 'alerts@example.com', 'Admin User')
 ON CONFLICT(id) DO UPDATE SET 
   is_active = excluded.is_active,
   target_date = excluded.target_date,

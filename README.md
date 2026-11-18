@@ -257,6 +257,8 @@ The application provides a unified D1 database interface at `src/server/db/d1.ts
 
 Apply and verify database schema migrations on Cloudflare D1:
 
+> **Privacy**: the baseline seed (`migrations/0002_seed_configurations.sql`) only contains **placeholder** alert recipients (`alerts@example.com`) and never overwrites existing rows (`ON CONFLICT DO NOTHING`). Configure the real alert recipient from the authenticated dashboard after deploying — never commit customer names or emails to the seed file.
+
 ```bash
 # Execute schema migration on remote D1 database
 npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migrations/0001_initial_schema.sql --yes
