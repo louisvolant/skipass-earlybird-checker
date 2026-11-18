@@ -7,6 +7,53 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Event broadcast when a protected endpoint answers 401 (session missing or
+// expired). The dashboard listens to it and switches back to the login card.
+export const AUTH_EXPIRED_EVENT = 'auth-expired';
+
+// Endpoints that manage authentication themselves: a 401 from them is an
+// expected login failure, not a session expiry.
+const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/session', '/api/auth/logout'];
+
+api.interceptors.response.use(undefined, (error: AxiosError) => {
+  const status = error.response?.status;
+  const url = error.config?.url ?? '';
+  if (status === 401 && !AUTH_ENDPOINTS.some((endpoint) => url.startsWith(endpoint))) {
+    window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+  }
+  return Promise.reject(error);
+});
+
+export async function login(password: string) {
+  try {
+    const response = await api.post('/api/auth/login', { password });
+    return response.data;
+  } catch (error) {
+    console.error('Error logging in:', error);
+    throw error;
+  }
+}
+
+export async function getSession() {
+  try {
+    const response = await api.get('/api/auth/session');
+    return response.data;
+  } catch (error) {
+    console.error('Error checking session:', error);
+    throw error;
+  }
+}
+
+export async function logout() {
+  try {
+    const response = await api.post('/api/auth/logout');
+    return response.data;
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw error;
+  }
+}
+
 export async function getLastChecks() {
   try {
     const response = await api.get('/api/get-checks');

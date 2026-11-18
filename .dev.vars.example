@@ -1,2 +1,5 @@
 # Cloudflare Workers local environment variables (for wrangler dev / preview)
 NEXTJS_ENV=development
+
+# Admin authentication (required): password for the dashboard login
+ADMIN_PASSWORD=

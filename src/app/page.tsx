@@ -4,12 +4,18 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getLastChecks, forceCheck, getCheckContent, deleteCheckContent, getDBSize } from '@/lib/api';
+import { getLastChecks, forceCheck, getCheckContent, deleteCheckContent, getDBSize, getSession, AUTH_EXPIRED_EVENT } from '@/lib/api';
 import { Check } from '@/lib/types';
 import CheckerConfiguration from './components/CheckerConfiguration';
 import DBUsage from './components/DBUsage';
+import AdminLogin from './components/AdminLogin';
+
+type AuthStatus = 'checking' | 'signedIn' | 'signedOut';
 
 export default function Home() {
+  // Admin authentication state: the dashboard only renders once a valid
+  // session exists (enforced by the Worker entrypoint on all /api/* routes).
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
   const [checks, setChecks] = useState<Check[]>([]);
   const [isChecksLoading, setIsChecksLoading] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -85,8 +91,22 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchChecks();
+    // Probe the session once on mount: unauthenticated visitors get the login card.
+    getSession()
+      .then(() => setAuthStatus('signedIn'))
+      .catch(() => setAuthStatus('signedOut'));
+
+    // A 401 on any protected endpoint (session expired mid-use) switches back to login.
+    const onAuthExpired = () => setAuthStatus('signedOut');
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
   }, []);
+
+  useEffect(() => {
+    if (authStatus === 'signedIn') {
+      fetchChecks();
+    }
+  }, [authStatus]);
 
   const handleViewContent = async (checkId: number) => {
     if (selectedCheckId === checkId) {
@@ -151,6 +171,20 @@ export default function Home() {
   const totalPages = Math.ceil(filteredChecks.length / checksPerPage);
 
   const selectedCheck = checks.find(check => check.id === selectedCheckId);
+
+  // Authentication gate: never render the dashboard (or trigger its API calls)
+  // before a valid admin session is confirmed.
+  if (authStatus === 'checking') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+
+  if (authStatus === 'signedOut') {
+    return <AdminLogin onSuccess={() => setAuthStatus('signedIn')} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

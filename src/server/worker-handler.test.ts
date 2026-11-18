@@ -13,12 +13,68 @@ describe('Worker Handler Top-Level Error Boundary', () => {
 
     const worker = createWorker(mockHandler);
     const mockCtx = { waitUntil: () => {} };
-    const req = new Request('http://localhost:3000/api/get-checks');
+    const req = new Request('http://localhost:3000/');
 
     const res = await worker.fetch(req, {}, mockCtx);
     assert.strictEqual(res.status, 200);
     const text = await res.text();
-    assert.strictEqual(text, 'OK: http://localhost:3000/api/get-checks');
+    assert.strictEqual(text, 'OK: http://localhost:3000/');
+  });
+
+  it('should return 401 for unauthenticated API requests (fail closed)', async () => {
+    let handlerCalled = false;
+    const mockHandler: WorkerHandler = {
+      fetch: async () => {
+        handlerCalled = true;
+        return new Response('Should not be called', { status: 200 });
+      },
+    };
+
+    const worker = createWorker(mockHandler);
+    const mockCtx = { waitUntil: () => {} };
+    const req = new Request('http://localhost:3000/api/get-checks');
+
+    const res = await worker.fetch(req, {}, mockCtx);
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(handlerCalled, false);
+    assert.strictEqual(res.headers.get('Cache-Control'), 'no-store');
+    const body = await res.json();
+    assert.strictEqual(body.error, 'Unauthorized');
+  });
+
+  it('should forward API requests carrying a valid admin session cookie', async () => {
+    const { createSessionToken } = await import('./auth/admin-auth.ts');
+    const env = { ADMIN_PASSWORD: 'admin-password-test' };
+    const token = await createSessionToken(undefined, env);
+    assert.ok(token);
+
+    const mockHandler: WorkerHandler = {
+      fetch: async () => new Response('OK', { status: 200 }),
+    };
+
+    const worker = createWorker(mockHandler);
+    const mockCtx = { waitUntil: () => {} };
+    const req = new Request('http://localhost:3000/api/get-checks', {
+      headers: { cookie: `admin_session=${token}` },
+    });
+
+    const res = await worker.fetch(req, env, mockCtx);
+    assert.strictEqual(res.status, 200);
+  });
+
+  it('should forward exempt auth routes without a session', async () => {
+    const mockHandler: WorkerHandler = {
+      fetch: async (req) => new Response(`OK: ${new URL(req.url).pathname}`, { status: 200 }),
+    };
+
+    const worker = createWorker(mockHandler);
+    const mockCtx = { waitUntil: () => {} };
+
+    for (const pathname of ['/api/auth/login', '/api/auth/session', '/api/scheduler']) {
+      const req = new Request(`http://localhost:3000${pathname}`);
+      const res = await worker.fetch(req, {}, mockCtx);
+      assert.strictEqual(res.status, 200, `expected ${pathname} to bypass the admin gate`);
+    }
   });
 
   it('should intercept malformed URLs and return 400 without crashing', async () => {

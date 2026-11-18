@@ -22,6 +22,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 ## Features
 
 - **Scheduled Checks**: Automated ski resort queries running daily at 07:00 UTC (via Cloudflare Workers Cron Triggers or Vercel Crons)
+- **Admin Authentication**: Password-protected dashboard with HMAC-signed HttpOnly session cookies, enforced at the Cloudflare Worker entrypoint on all `/api/*` routes (fail closed)
 - **Customizable Search Parameters**: Configurable resort, target dates, and search terms stored in Cloudflare D1
 - **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
@@ -81,6 +82,7 @@ All configuration is managed via environment variables.
 
 | Variable | Description | Example |
 |---|---|---|
+| `ADMIN_PASSWORD` | *(Required)* Admin password for the dashboard login. Rotating it invalidates all existing sessions. | `my-strong-password` |
 | `MAILJET_API_KEY` | Mailjet public API key | `...` |
 | `MAILJET_SECRET_KEY` | Mailjet secret API key | `...` |
 | `MAIL_ORIGIN_ADDRESS` | Sender email address registered in Mailjet | `alerts@example.com` |
@@ -128,8 +130,13 @@ This compiles the Next.js app with OpenNext and launches the local Wrangler deve
 
 All backend routes follow Next.js App Router conventions in `src/app/api/.../route.ts`:
 
+> **Authentication**: all API routes except `/api/auth/*` and `/api/scheduler` require a valid admin session cookie, enforced in `worker.ts` before requests reach Next.js (fail closed). `/api/scheduler` protects itself with `CRON_SECRET`.
+
 | Method | Endpoint | Description | Cache-Control |
 |---|---|---|---|
+| `POST`| `/api/auth/login` | Verify admin password (`{ "password": "..." }`) and issue a signed HttpOnly session cookie | Public (self-guarded) |
+| `GET` | `/api/auth/session` | Probe the current session (200 when authenticated, 401 otherwise) | Public (self-guarded) |
+| `POST`| `/api/auth/logout` | Clear the admin session cookie | Public (self-guarded) |
 | `GET` | `/api/get-checks` | Fetch recent check history | Edge cache (60s, stale-while-revalidate 120s) |
 | `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check | Edge cache (24h immutable history) |
 | `POST`| `/api/delete-check-content` | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
@@ -139,6 +146,19 @@ All backend routes follow Next.js App Router conventions in `src/app/api/.../rou
 | `POST`| `/api/clear-cache` | Invalidate cached results | Dynamic |
 | `GET` | `/api/get-db-usage` | Fetch Cloudflare D1 database size and stats | Edge cache (300s, stale-while-revalidate 600s) |
 | `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
+
+---
+
+## Admin Authentication
+
+Access to the dashboard and every `/api/*` route (except `/api/auth/*` and `/api/scheduler`) is protected by an admin session:
+
+1. Set `ADMIN_PASSWORD` as a secret in the Cloudflare Dashboard (`npx wrangler secret put ADMIN_PASSWORD`). For local previews, add it to `.dev.vars`.
+2. The Worker entrypoint (`worker.ts` → `src/server/worker-handler.ts`) validates the session cookie on every API request and returns `401` otherwise — **fail closed**: if `ADMIN_PASSWORD` is not configured, no session can be issued and protected routes stay locked.
+3. The dashboard shows a login card when unauthenticated. A successful `POST /api/auth/login` issues an HMAC-SHA256-signed, HttpOnly, Secure, SameSite=Strict cookie valid for 7 days.
+4. Rotating `ADMIN_PASSWORD` automatically invalidates every previously issued session (the signing key is derived from the password).
+
+> **Note**: the authentication gate runs in the Cloudflare Worker entrypoint, so it is enforced on preview (`npm run preview`) and production deployments. The plain `next dev` server bypasses `worker.ts` and is intended for local development only.
 
 ---
 
