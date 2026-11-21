@@ -22,7 +22,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 ## Features
 
 - **Scheduled Checks**: Automated ski resort queries running daily at 07:00 UTC (via Cloudflare Workers Cron Triggers or Vercel Crons)
-- **Admin Authentication**: Password-protected dashboard with HMAC-signed HttpOnly session cookies, enforced at the Cloudflare Worker entrypoint on all `/api/*` routes (fail closed)
+- **Public Read-Only Dashboard & Protected Admin APIs**: The public dashboard can read check history, database usage, and masked read-only configurations without signing in, while all mutating endpoints (`/api/update-checker-configuration`, `/api/delete-check-content`, `/api/force-check`, `/api/clear-cache`) require an HMAC-signed HttpOnly admin session cookie enforced at the Cloudflare Worker entrypoint (fail closed)
 - **Customizable Search Parameters**: Configurable resort, target dates, and search terms stored in Cloudflare D1
 - **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
@@ -131,32 +131,32 @@ This compiles the Next.js app with OpenNext and launches the local Wrangler deve
 
 All backend routes follow Next.js App Router conventions in `src/app/api/.../route.ts`:
 
-> **Authentication**: all API routes except `/api/auth/*` and `/api/scheduler` require a valid admin session cookie, enforced in `worker.ts` before requests reach Next.js (fail closed). `/api/scheduler` protects itself with `CRON_SECRET`.
+> **Authentication**: Read-only `GET` endpoints serving the public dashboard (`/api/get-checks`, `/api/get-check-content`, `/api/get-checker-configuration` with masked customer PII, `/api/get-db-usage`) are publicly accessible. All mutating and admin endpoints require a valid admin session cookie, enforced in `worker.ts` before requests reach Next.js (fail closed). `/api/auth/*` manage authentication themselves and `/api/scheduler` protects itself with `CRON_SECRET`.
 
-| Method | Endpoint | Description | Cache-Control |
-|---|---|---|---|
-| `POST`| `/api/auth/login` | Verify admin password (`{ "password": "..." }`) and issue a signed HttpOnly session cookie | Public (self-guarded) |
-| `GET` | `/api/auth/session` | Probe the current session (200 when authenticated, 401 otherwise) | Public (self-guarded) |
-| `POST`| `/api/auth/logout` | Clear the admin session cookie | Public (self-guarded) |
-| `GET` | `/api/get-checks` | Fetch recent check history | Private cache (60s) |
-| `GET` | `/api/get-check-content?check_id=<id>` | Retrieve full HTML / parsed details for a specific check | Private cache (1h immutable history) |
-| `POST`| `/api/delete-check-content` | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
-| `POST`| `/api/force-check` | Manually run crawler checks across active configurations | Dynamic |
-| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | List active or all checker configurations | Private cache (60s) |
-| `POST`| `/api/update-checker-configuration` | Update an existing checker configuration | Dynamic |
-| `POST`| `/api/clear-cache` | Invalidate cached results | Dynamic |
-| `GET` | `/api/get-db-usage` | Fetch Cloudflare D1 database size and stats | Private cache (5 min) |
-| `GET` | `/api/scheduler` | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
+| Method | Endpoint | Access | Description | Cache-Control |
+|---|---|---|---|---|
+| `POST`| `/api/auth/login` | Public (self-guarded) | Verify admin password (`{ "password": "..." }`) and issue a signed HttpOnly session cookie | Dynamic |
+| `GET` | `/api/auth/session` | Public (self-guarded) | Probe the current session (200 when authenticated, 401 otherwise) | Dynamic |
+| `POST`| `/api/auth/logout` | Public (self-guarded) | Clear the admin session cookie | Dynamic |
+| `GET` | `/api/get-checks` | Public (GET only) | Fetch recent check history | Private cache (60s) |
+| `GET` | `/api/get-check-content?check_id=<id>` | Public (GET only) | Retrieve full HTML / parsed details for a specific check | Private cache (1h immutable history) |
+| `POST`| `/api/delete-check-content` | Admin (protected) | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
+| `POST`| `/api/force-check` | Admin (protected) | Manually run crawler checks across active configurations | Dynamic |
+| `GET` | `/api/get-checker-configuration?isActiveOnly=true` | Public (GET only; masked PII unless admin) | List active or all checker configurations | Private cache (60s) / `no-store` (admin) |
+| `POST`| `/api/update-checker-configuration` | Admin (protected) | Update an existing checker configuration | Dynamic |
+| `POST`| `/api/clear-cache` | Admin (protected) | Invalidate cached results | Dynamic |
+| `GET` | `/api/get-db-usage` | Public (GET only) | Fetch Cloudflare D1 database size and stats | Private cache (5 min) |
+| `GET` | `/api/scheduler` | Cron (`CRON_SECRET`) | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
 
 ---
 
 ## Admin Authentication
 
-Access to the dashboard and every `/api/*` route (except `/api/auth/*` and `/api/scheduler`) is protected by an admin session:
+All mutating `/api/*` routes and admin configuration changes are protected by an admin session:
 
 1. Set `ADMIN_PASSWORD` as a secret in the Cloudflare Dashboard (`npx wrangler secret put ADMIN_PASSWORD`). For local previews, add it to `.dev.vars`.
-2. The Worker entrypoint (`worker.ts` → `src/server/worker-handler.ts`) validates the session cookie on every API request and returns `401` otherwise — **fail closed**: if `ADMIN_PASSWORD` is not configured, no session can be issued and protected routes stay locked.
-3. The dashboard shows a login card when unauthenticated. A successful `POST /api/auth/login` issues an HMAC-SHA256-signed, HttpOnly, Secure, SameSite=Strict cookie valid for 7 days.
+2. The Worker entrypoint (`worker.ts` → `src/server/worker-handler.ts`) validates the session cookie on every mutating or admin API request and returns `401` otherwise — **fail closed**: if `ADMIN_PASSWORD` is not configured, no session can be issued and protected routes stay locked. Public `GET` endpoints (`/api/get-checks`, `/api/get-check-content`, `/api/get-checker-configuration`, `/api/get-db-usage`) remain publicly readable with customer email and contact fields masked for unauthenticated callers.
+3. Unauthenticated visitors on the admin view see a login card. A successful `POST /api/auth/login` issues an HMAC-SHA256-signed, HttpOnly, Secure, SameSite=Strict cookie valid for 7 days.
 4. Rotating `ADMIN_PASSWORD` automatically invalidates every previously issued session (the signing key is derived from the password).
 
 > **Note**: the authentication gate runs in the Cloudflare Worker entrypoint, so it is enforced on preview (`npm run preview`) and production deployments. The plain `next dev` server bypasses `worker.ts` and is intended for local development only.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server.js';
 import { getConfigurations } from '../../../server/service/checker-configuration-service.ts';
-import { maskEmail } from '../../../server/utils/mail-utils.ts';
+import { isAuthorizedApiRequest } from '../../../server/auth/admin-auth.ts';
+import { maskContact, maskEmail } from '../../../server/utils/mail-utils.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
       return new NextResponse(null, { status: 499 });
     }
     const isActiveOnly = req.nextUrl.searchParams.get('isActiveOnly') === 'true';
+    const isAdmin = await isAuthorizedApiRequest(req);
     const configurations = await getConfigurations(isActiveOnly);
 
     return NextResponse.json(
@@ -21,15 +23,20 @@ export async function GET(req: NextRequest) {
           targetDate: config.target_date,
           targetLabel: config.target_label,
           is_mail_alert: !!config.is_mail_alert,
-          mail_alert_address: maskEmail(config.mail_alert_address),
-          mail_alert_contact: config.mail_alert_contact,
+          // Mask customer PII for public dashboard reads; return full details to authenticated admins.
+          mail_alert_address: isAdmin
+            ? config.mail_alert_address || ''
+            : maskEmail(config.mail_alert_address),
+          mail_alert_contact: isAdmin
+            ? config.mail_alert_contact || ''
+            : maskContact(config.mail_alert_contact),
         })),
       },
       {
         headers: {
-          // Private browser caching only: configurations contain customer PII
-          // (masked emails, contact names) that must never reach shared caches.
-          'Cache-Control': 'private, max-age=60',
+          // Never cache unmasked admin responses; keep public masked responses
+          // strictly in private browser caches.
+          'Cache-Control': isAdmin ? 'no-store' : 'private, max-age=60',
         },
       }
     );

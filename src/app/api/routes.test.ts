@@ -32,6 +32,9 @@ describe('API Route Handlers and Edge Caching', () => {
     assert.strictEqual(body.success, true);
     assert.ok(Array.isArray(body.configurations));
     assert.ok(body.configurations.length >= 1);
+    // Unauthenticated callers must receive masked PII fields.
+    assert.ok(body.configurations[0].mail_alert_address.includes('*'));
+    assert.ok(body.configurations[0].mail_alert_contact.includes('*'));
   });
 
   it('GET /api/get-check-content should validate check_id query parameter', async () => {

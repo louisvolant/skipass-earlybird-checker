@@ -28,3 +28,14 @@ export function maskEmail(email?: string | null): string {
 
   return `${maskedUsername}@${maskedDomain}.${maskedTld}`;
 }
+
+export function maskContact(contact?: string | null): string {
+  if (!contact) {
+    return '';
+  }
+  const trimmed = contact.trim();
+  if (trimmed.length <= 2) {
+    return '*'.repeat(trimmed.length);
+  }
+  return trimmed.substring(0, 2) + '*'.repeat(trimmed.length - 2);
+}

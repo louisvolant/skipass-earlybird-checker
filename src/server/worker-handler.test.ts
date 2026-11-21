@@ -21,7 +21,27 @@ describe('Worker Handler Top-Level Error Boundary', () => {
     assert.strictEqual(text, 'OK: http://localhost:3000/');
   });
 
-  it('should return 401 for unauthenticated API requests (fail closed)', async () => {
+  it('should allow public read-only GET API requests without a session', async () => {
+    const mockHandler: WorkerHandler = {
+      fetch: async (req) => new Response(`OK: ${new URL(req.url).pathname}`, { status: 200 }),
+    };
+
+    const worker = createWorker(mockHandler);
+    const mockCtx = { waitUntil: () => {} };
+
+    for (const pathname of [
+      '/api/get-checks',
+      '/api/get-check-content',
+      '/api/get-checker-configuration',
+      '/api/get-db-usage',
+    ]) {
+      const req = new Request(`http://localhost:3000${pathname}`, { method: 'GET' });
+      const res = await worker.fetch(req, {}, mockCtx);
+      assert.strictEqual(res.status, 200, `expected GET ${pathname} to be publicly accessible`);
+    }
+  });
+
+  it('should return 401 for unauthenticated mutating or admin API requests (fail closed)', async () => {
     let handlerCalled = false;
     const mockHandler: WorkerHandler = {
       fetch: async () => {
@@ -32,17 +52,27 @@ describe('Worker Handler Top-Level Error Boundary', () => {
 
     const worker = createWorker(mockHandler);
     const mockCtx = { waitUntil: () => {} };
-    const req = new Request('http://localhost:3000/api/get-checks');
 
-    const res = await worker.fetch(req, {}, mockCtx);
-    assert.strictEqual(res.status, 401);
+    for (const [method, pathname] of [
+      ['POST', '/api/update-checker-configuration'],
+      ['POST', '/api/create-checker-configuration'],
+      ['POST', '/api/delete-checker-configuration'],
+      ['POST', '/api/delete-check-content'],
+      ['POST', '/api/force-check'],
+      ['POST', '/api/clear-cache'],
+      ['POST', '/api/get-checks'],
+    ]) {
+      const req = new Request(`http://localhost:3000${pathname}`, { method });
+      const res = await worker.fetch(req, {}, mockCtx);
+      assert.strictEqual(res.status, 401, `expected ${method} ${pathname} to fail closed with 401`);
+      assert.strictEqual(res.headers.get('Cache-Control'), 'no-store');
+      const body = await res.json();
+      assert.strictEqual(body.error, 'Unauthorized');
+    }
     assert.strictEqual(handlerCalled, false);
-    assert.strictEqual(res.headers.get('Cache-Control'), 'no-store');
-    const body = await res.json();
-    assert.strictEqual(body.error, 'Unauthorized');
   });
 
-  it('should forward API requests carrying a valid admin session cookie', async () => {
+  it('should forward mutating API requests carrying a valid admin session cookie', async () => {
     const { createSessionToken } = await import('./auth/admin-auth.ts');
     const env = { ADMIN_PASSWORD: 'admin-password-test' };
     const token = await createSessionToken(undefined, env);
@@ -54,7 +84,8 @@ describe('Worker Handler Top-Level Error Boundary', () => {
 
     const worker = createWorker(mockHandler);
     const mockCtx = { waitUntil: () => {} };
-    const req = new Request('http://localhost:3000/api/get-checks', {
+    const req = new Request('http://localhost:3000/api/update-checker-configuration', {
+      method: 'POST',
       headers: { cookie: `admin_session=${token}` },
     });
 

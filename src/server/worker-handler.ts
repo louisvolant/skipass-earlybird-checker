@@ -2,7 +2,11 @@
 // Factory for Cloudflare Worker entrypoint with top-level error boundaries, URL validation,
 // and admin authentication enforced on all API routes before they reach Next.js.
 
-import { isAuthExemptApiPath, isAuthorizedApiRequest } from './auth/admin-auth.ts';
+import {
+  isAuthExemptApiPath,
+  isAuthorizedApiRequest,
+  isPublicReadOnlyApiRequest,
+} from './auth/admin-auth.ts';
 
 export interface WorkerEnv {
   CRON_SECRET?: string;
@@ -32,12 +36,17 @@ export function createWorker(handler: WorkerHandler) {
           });
         }
 
-        // Enforce admin authentication on every API route (fail closed).
-        // Exempt paths (/api/auth/*, /api/scheduler) protect themselves.
+        // Enforce admin authentication on all mutating and admin API routes (fail closed).
+        // Public read-only GET routes serve the public dashboard, and exempt paths
+        // (/api/auth/*, /api/scheduler) manage their own authorization.
         // Running the check in the Worker entrypoint guarantees access to
         // runtime secrets regardless of the Next.js middleware runtime.
         const url = new URL(request.url);
-        if (url.pathname.startsWith('/api/') && !isAuthExemptApiPath(url.pathname)) {
+        if (
+          url.pathname.startsWith('/api/') &&
+          !isAuthExemptApiPath(url.pathname) &&
+          !isPublicReadOnlyApiRequest(request)
+        ) {
           const authorized = await isAuthorizedApiRequest(request, env);
           if (!authorized) {
             return new Response(JSON.stringify({ error: 'Unauthorized' }), {

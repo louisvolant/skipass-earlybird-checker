@@ -133,3 +133,23 @@ export function isAuthExemptApiPath(pathname: string): boolean {
     pathname === '/api/scheduler'
   );
 }
+
+const PUBLIC_READONLY_API_PATHS = new Set([
+  '/api/get-checks',
+  '/api/get-check-content',
+  '/api/get-checker-configuration',
+  '/api/get-db-usage',
+]);
+
+/**
+ * Check whether an incoming API request targets a public read-only dashboard
+ * endpoint. Only GET requests are allowed without an admin session; all
+ * mutating endpoints and non-GET requests remain protected.
+ */
+export function isPublicReadOnlyApiRequest(request: Request): boolean {
+  if (request.method.toUpperCase() !== 'GET') {
+    return false;
+  }
+  const { pathname } = new URL(request.url);
+  return PUBLIC_READONLY_API_PATHS.has(pathname);
+}

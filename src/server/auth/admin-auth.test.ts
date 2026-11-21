@@ -6,6 +6,7 @@ import {
   getCookieValue,
   isAuthExemptApiPath,
   isAuthorizedApiRequest,
+  isPublicReadOnlyApiRequest,
   verifyAdminPassword,
   verifySessionToken,
 } from './admin-auth.ts';
@@ -122,9 +123,45 @@ describe('Admin Authentication', () => {
     });
 
     it('should not exempt protected API routes', () => {
-      assert.strictEqual(isAuthExemptApiPath('/api/get-checks'), false);
       assert.strictEqual(isAuthExemptApiPath('/api/update-checker-configuration'), false);
       assert.strictEqual(isAuthExemptApiPath('/api/force-check'), false);
+      assert.strictEqual(isAuthExemptApiPath('/api/delete-check-content'), false);
+      assert.strictEqual(isAuthExemptApiPath('/api/clear-cache'), false);
+    });
+  });
+
+  describe('isPublicReadOnlyApiRequest', () => {
+    it('should allow GET requests to public dashboard read-only routes', () => {
+      for (const pathname of [
+        '/api/get-checks',
+        '/api/get-check-content?check_id=1',
+        '/api/get-checker-configuration?isActiveOnly=true',
+        '/api/get-db-usage',
+      ]) {
+        const req = new Request(`http://localhost:3000${pathname}`, { method: 'GET' });
+        assert.strictEqual(isPublicReadOnlyApiRequest(req), true, `expected GET ${pathname} to be public`);
+      }
+    });
+
+    it('should reject non-GET requests to read-only routes', () => {
+      const postReq = new Request('http://localhost:3000/api/get-checks', { method: 'POST' });
+      assert.strictEqual(isPublicReadOnlyApiRequest(postReq), false);
+    });
+
+    it('should reject all mutating admin routes regardless of HTTP method', () => {
+      for (const pathname of [
+        '/api/update-checker-configuration',
+        '/api/create-checker-configuration',
+        '/api/delete-checker-configuration',
+        '/api/delete-check-content',
+        '/api/force-check',
+        '/api/clear-cache',
+      ]) {
+        const postReq = new Request(`http://localhost:3000${pathname}`, { method: 'POST' });
+        const getReq = new Request(`http://localhost:3000${pathname}`, { method: 'GET' });
+        assert.strictEqual(isPublicReadOnlyApiRequest(postReq), false);
+        assert.strictEqual(isPublicReadOnlyApiRequest(getReq), false);
+      }
     });
   });
 });
