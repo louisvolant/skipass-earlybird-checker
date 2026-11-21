@@ -8,13 +8,15 @@ interface DBUsageProps {
 }
 
 export default function DBUsage({ dbSize }: DBUsageProps) {
+  if (!dbSize) {
+    return null;
+  }
+
   return (
-    dbSize ? (
-      <div className="mt-4 text-center">
-        <p className="text-sm text-gray-600">
-          Total Database Size: <span className="font-semibold">{dbSize || 'N/A'}</span>
-        </p>
-      </div>
-    ) : null
+    <div className="mt-4 flex justify-center">
+      <span className="badge badge-ghost badge-sm text-xs px-3 py-2">
+        Database Size: <strong className="ml-1 font-semibold">{dbSize}</strong>
+      </span>
+    </div>
   );
 }

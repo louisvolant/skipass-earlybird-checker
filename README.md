@@ -26,7 +26,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 - **Customizable Search Parameters & Multi-Site URLs**: Configurable target site URLs, dates, and search labels stored in Cloudflare D1 (with fallback to `BASE_SKI_RESORT_URL_SHOP`)
 - **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
-- **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
+- **Public Read-Only Web Dashboard (`/`)**: Compact, mobile-first dashboard to view, sort, filter, and inspect check history alongside read-only monitored configurations and D1 storage stats
 - **Dark Mode Support**: DaisyUI theme switching
 - **Cloudflare D1 Database & SQLite Migrations**: Serverless SQLite persistence running natively on Cloudflare edge via D1 (`skipass-earlybird-checker-d1`) with automated schema migrations
 - **Database Usage Display & Private Response Caching**: Real-time database size and object count monitoring with in-memory TTL caching and private `Cache-Control` response headers (customer data is never stored in shared or Cloudflare edge caches, where session authorization would not be re-evaluated)
