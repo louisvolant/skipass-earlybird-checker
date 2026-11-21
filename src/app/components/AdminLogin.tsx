@@ -1,8 +1,9 @@
 // src/app/components/AdminLogin.tsx
-// Login card displayed when the dashboard has no valid admin session.
+// Login card displayed on the protected /admin configuration page when no valid session exists.
 
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { login } from '@/lib/api';
 
 interface AdminLoginProps {
@@ -29,28 +30,35 @@ export default function AdminLogin({ onSuccess }: AdminLoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200">
-      <div className="card w-96 bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title justify-center">Admin Access</h2>
-          <p className="text-center text-sm opacity-70">
-            This dashboard is protected. Sign in to continue.
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-base-200 px-4">
+      <div className="card w-full max-w-sm bg-base-100 border border-base-300 shadow-lg">
+        <div className="card-body p-5 space-y-3">
+          <div className="text-center space-y-1">
+            <h1 className="text-lg font-bold">Admin Configuration</h1>
+            <p className="text-xs opacity-70">
+              Sign in to manage checker URLs, configurations, and manual runs.
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="password"
-              className="input input-bordered w-full"
+              className="input input-bordered input-sm w-full"
               placeholder="Admin password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoFocus
               required
             />
-            {error && <p className="text-error text-sm text-center">{error}</p>}
-            <button type="submit" className="btn btn-primary w-full" disabled={submitting}>
-              {submitting ? <span className="loading loading-spinner" /> : 'Sign In'}
+            {error && <p className="text-error text-xs text-center">{error}</p>}
+            <button type="submit" className="btn btn-primary btn-sm w-full" disabled={submitting}>
+              {submitting ? <span className="loading loading-spinner loading-xs" /> : 'Sign In'}
             </button>
           </form>
+          <div className="text-center pt-1">
+            <Link href="/" className="link link-hover text-xs opacity-75">
+              ← Back to Public Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ Built with **Next.js 16 (App Router)** and ready to deploy on **Cloudflare Worke
 ## Project Structure
 
 ```
-├── src/app/          Next.js App Router pages and API route handlers (/api/*)
+├── src/app/          Next.js App Router pages (public `/`, protected `/admin`) and API route handlers (`/api/*`)
 ├── src/server/       Server-only logic (D1 database client, Mailjet, crawler service)
 ├── src/lib/          Client API client and TypeScript interfaces
 ├── public/           Static assets and Cloudflare cache headers (_headers)
@@ -24,7 +24,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 - **Scheduled Checks**: Automated ski resort queries running daily at 07:00 UTC (via Cloudflare Workers Cron Triggers or Vercel Crons)
 - **Public Read-Only Dashboard & Protected Admin APIs**: The public dashboard can read check history, database usage, and masked read-only configurations without signing in, while all mutating endpoints (`/api/update-checker-configuration`, `/api/delete-check-content`, `/api/force-check`, `/api/clear-cache`) require an HMAC-signed HttpOnly admin session cookie enforced at the Cloudflare Worker entrypoint (fail closed)
 - **Customizable Search Parameters & Multi-Site URLs**: Configurable target site URLs, dates, and search labels stored in Cloudflare D1 (with fallback to `BASE_SKI_RESORT_URL_SHOP`)
-- **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
+- **Protected Admin & Configuration Page (`/admin`)**: Dedicated password-protected management screen to add new site URLs to monitor, edit or delete configurations, trigger manual checks (`Force Check`), clear caches, and moderate check history
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
 - **Public Read-Only Web Dashboard (`/`)**: Compact, mobile-first dashboard to view, sort, filter, and inspect check history alongside read-only monitored configurations and D1 storage stats
 - **Dark Mode Support**: DaisyUI theme switching
@@ -113,7 +113,7 @@ Run the development server locally:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to access the dashboard. Backend API route handlers in `src/app/api/*` are active and reload automatically.
+Open [http://localhost:3000](http://localhost:3000) to access the public read-only dashboard, and [http://localhost:3000/admin](http://localhost:3000/admin) to manage configurations and site URLs. Backend API route handlers in `src/app/api/*` are active and reload automatically.
 
 ### 2. Local Cloudflare Workers Preview
 
@@ -158,7 +158,7 @@ All mutating `/api/*` routes and admin configuration changes are protected by an
 
 1. Set `ADMIN_PASSWORD` as a secret in the Cloudflare Dashboard (`npx wrangler secret put ADMIN_PASSWORD`). For local previews, add it to `.dev.vars`.
 2. The Worker entrypoint (`worker.ts` → `src/server/worker-handler.ts`) validates the session cookie on every mutating or admin API request and returns `401` otherwise — **fail closed**: if `ADMIN_PASSWORD` is not configured, no session can be issued and protected routes stay locked. Public `GET` endpoints (`/api/get-checks`, `/api/get-check-content`, `/api/get-checker-configuration`, `/api/get-db-usage`) remain publicly readable with customer email and contact fields masked for unauthenticated callers.
-3. Unauthenticated visitors on the admin view see a login card. A successful `POST /api/auth/login` issues an HMAC-SHA256-signed, HttpOnly, Secure, SameSite=Strict cookie valid for 7 days.
+3. Unauthenticated visitors on `/admin` see a login card (with a link back to the public dashboard `/`). A successful `POST /api/auth/login` issues an HMAC-SHA256-signed, HttpOnly, Secure, SameSite=Strict cookie valid for 7 days.
 4. Rotating `ADMIN_PASSWORD` automatically invalidates every previously issued session (the signing key is derived from the password).
 
 > **Note**: the authentication gate runs in the Cloudflare Worker entrypoint, so it is enforced on preview (`npm run preview`) and production deployments. The plain `next dev` server bypasses `worker.ts` and is intended for local development only.
