@@ -7,6 +7,7 @@ describe('Cloudflare D1 Configuration and Schema Migrations', () => {
   const wranglerConfigPath = path.resolve(process.cwd(), 'wrangler.jsonc');
   const schemaMigrationPath = path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql');
   const seedMigrationPath = path.resolve(process.cwd(), 'migrations/0002_seed_configurations.sql');
+  const targetUrlMigrationPath = path.resolve(process.cwd(), 'migrations/0003_add_target_url.sql');
 
   function parseJsonc(content: string) {
     const stripped = content
@@ -40,5 +41,9 @@ describe('Cloudflare D1 Configuration and Schema Migrations', () => {
     assert.ok(fs.existsSync(seedMigrationPath), '0002_seed_configurations.sql must exist');
     const seedSql = fs.readFileSync(seedMigrationPath, 'utf8');
     assert.ok(seedSql.includes('INSERT INTO checker_configurations'));
+
+    assert.ok(fs.existsSync(targetUrlMigrationPath), '0003_add_target_url.sql must exist');
+    const targetUrlSql = fs.readFileSync(targetUrlMigrationPath, 'utf8');
+    assert.ok(targetUrlSql.includes('ALTER TABLE checker_configurations ADD COLUMN target_url TEXT'));
   });
 });

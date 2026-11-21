@@ -59,4 +59,39 @@ describe('Resort Crawler HTTP Requests', () => {
       getMock.mock.restore();
     }
   });
+
+  it('should use per-configuration target_url when configured', async () => {
+    const db = resetInMemoryD1Database();
+    await db.prepare('DELETE FROM checker_configurations').run();
+    await db
+      .prepare(
+        `INSERT INTO checker_configurations (is_active, target_date, target_label, target_url, is_mail_alert)
+         VALUES (1, '2026-12-20', 'Custom Resort Pass', 'https://custom-resort.example.com/shop', 0)`
+      )
+      .run();
+
+    let capturedUrl = '';
+    const getMock = mock.method(axios, 'get', async (requestUrl: string) => {
+      capturedUrl = requestUrl;
+      return {
+        status: 200,
+        data: `
+          <div class="product-row">
+            <a class="product-row__link" href="/deal">Custom Resort Pass</a>
+            <div class="product-action"><span class="button__text">Acheter €299</span></div>
+          </div>
+        `,
+      };
+    });
+
+    try {
+      const results = await checkSkiPassStation();
+      assert.strictEqual(results.length, 1);
+      assert.strictEqual(results[0].found, true);
+      assert.strictEqual(results[0].price, '299');
+      assert.strictEqual(capturedUrl, 'https://custom-resort.example.com/shop');
+    } finally {
+      getMock.mock.restore();
+    }
+  });
 });

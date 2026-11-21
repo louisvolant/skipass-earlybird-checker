@@ -8,7 +8,12 @@ import {
   sanitizeResponseText,
   MAX_RESPONSE_TEXT_LENGTH,
 } from './checker-history-service.ts';
-import { getConfigurations, updateConfiguration } from './checker-configuration-service.ts';
+import {
+  createConfiguration,
+  deleteConfiguration,
+  getConfigurations,
+  updateConfiguration,
+} from './checker-configuration-service.ts';
 import { resetInMemoryD1Database, setMockD1Database } from '../db/d1.ts';
 
 describe('Checker Services Cloudflare D1 Integration', () => {
@@ -46,18 +51,42 @@ describe('Checker Services Cloudflare D1 Integration', () => {
     assert.strictEqual(allConfigs[0].is_active, false);
   });
 
-  it('should update configuration fields in D1', async () => {
+  it('should update configuration fields including target_url in D1', async () => {
     const updated = await updateConfiguration(1, {
       target_date: '2026-12-25',
       target_label: 'Tignes',
+      target_url: 'https://shop.tignes.net/passes',
       is_mail_alert: true,
       mail_alert_address: 'snow@resort.com',
     });
 
     assert.strictEqual(updated.target_date, '2026-12-25');
     assert.strictEqual(updated.target_label, 'Tignes');
+    assert.strictEqual(updated.target_url, 'https://shop.tignes.net/passes');
     assert.strictEqual(updated.is_mail_alert, true);
     assert.strictEqual(updated.mail_alert_address, 'snow@resort.com');
+  });
+
+  it('should create and delete configurations with target_url in D1', async () => {
+    const created = await createConfiguration({
+      is_active: true,
+      target_date: '2027-01-15',
+      target_label: 'Les Arcs EarlyBird',
+      target_url: 'https://shop.lesarcs.com/fr/skipass',
+      is_mail_alert: false,
+      mail_alert_address: null,
+      mail_alert_contact: null,
+    });
+
+    assert.ok(created.id > 1);
+    assert.strictEqual(created.target_url, 'https://shop.lesarcs.com/fr/skipass');
+    assert.strictEqual(created.target_label, 'Les Arcs EarlyBird');
+
+    const deleted = await deleteConfiguration(created.id);
+    assert.deepStrictEqual(deleted, { id: created.id });
+
+    const notFound = await deleteConfiguration(created.id);
+    assert.strictEqual(notFound, null);
   });
 
   it('should throw error when updating non-existent configuration', async () => {

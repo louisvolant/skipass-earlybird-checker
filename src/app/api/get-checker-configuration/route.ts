@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server.js';
 import { getConfigurations } from '../../../server/service/checker-configuration-service.ts';
 import { isAuthorizedApiRequest } from '../../../server/auth/admin-auth.ts';
-import { maskContact, maskEmail } from '../../../server/utils/mail-utils.ts';
+import { formatConfigurationResponse } from '../../../server/utils/configuration-payload.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,20 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        configurations: configurations.map((config) => ({
-          id: config.id,
-          is_active: config.is_active,
-          targetDate: config.target_date,
-          targetLabel: config.target_label,
-          is_mail_alert: !!config.is_mail_alert,
-          // Mask customer PII for public dashboard reads; return full details to authenticated admins.
-          mail_alert_address: isAdmin
-            ? config.mail_alert_address || ''
-            : maskEmail(config.mail_alert_address),
-          mail_alert_contact: isAdmin
-            ? config.mail_alert_contact || ''
-            : maskContact(config.mail_alert_contact),
-        })),
+        configurations: configurations.map((config) => formatConfigurationResponse(config, isAdmin)),
       },
       {
         headers: {

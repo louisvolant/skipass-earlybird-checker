@@ -42,15 +42,17 @@ export function createInMemoryD1Database(): D1Database {
   const { DatabaseSync } = req('node:sqlite');
   const sqlite = new DatabaseSync(':memory:');
 
-  // Load and apply initial migrations if available
+  // Load and apply numbered SQL migrations in deterministic order (0001_*, 0002_*, ...)
   try {
-    const schemaPath = path.resolve(process.cwd(), 'migrations/0001_initial_schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      sqlite.exec(fs.readFileSync(schemaPath, 'utf8'));
-    }
-    const seedPath = path.resolve(process.cwd(), 'migrations/0002_seed_configurations.sql');
-    if (fs.existsSync(seedPath)) {
-      sqlite.exec(fs.readFileSync(seedPath, 'utf8'));
+    const migrationsDir = path.resolve(process.cwd(), 'migrations');
+    if (fs.existsSync(migrationsDir)) {
+      const migrationFiles = fs
+        .readdirSync(migrationsDir)
+        .filter((file) => /^\d{4}_.*\.sql$/.test(file))
+        .sort();
+      for (const file of migrationFiles) {
+        sqlite.exec(fs.readFileSync(path.join(migrationsDir, file), 'utf8'));
+      }
     }
   } catch {
     // Ignore migration loading errors in non-filesystem environments

@@ -31,14 +31,26 @@ export function buildResortHeaders(): Record<string, string> {
   return headers;
 }
 
+function buildFullCheckUrl(baseUrl: string, dateToCheck: string): string {
+  try {
+    const parsedUrl = new URL(baseUrl);
+    parsedUrl.searchParams.set('partner_date', dateToCheck);
+    parsedUrl.searchParams.set('start_date', dateToCheck);
+    return parsedUrl.toString();
+  } catch {
+    return `${baseUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
+  }
+}
+
 async function performCheckForConfig(
   config: {
     id: number;
     target_date: string;
     target_label: string;
-    is_mail_alert: boolean;
-    mail_alert_address?: string;
-    mail_alert_contact?: string;
+    target_url?: string | null;
+    is_mail_alert: boolean | number;
+    mail_alert_address?: string | null;
+    mail_alert_contact?: string | null;
   },
   signal?: AbortSignal
 ) {
@@ -46,13 +58,18 @@ async function performCheckForConfig(
     throw new Error('Check aborted: client disconnected');
   }
   const { target_date: dateToCheck, target_label: searchTerm } = config;
+  const targetUrl = config.target_url?.trim() || searchUrl;
+  if (!targetUrl) {
+    throw new Error('No target URL configured for checker config');
+  }
   const custom_headers = buildResortHeaders();
+  const fullUrl = buildFullCheckUrl(targetUrl, dateToCheck);
 
   try {
     // TLS certificate verification is always left enabled: the crawler must
     // never accept a spoofed certificate that would let a man-in-the-middle
     // inject arbitrary content into the stored check history.
-    const response = await axios.get(searchUrl!, {
+    const response = await axios.get(targetUrl, {
       params: { partner_date: dateToCheck, start_date: dateToCheck },
       headers: custom_headers,
       signal,
@@ -120,7 +137,6 @@ async function performCheckForConfig(
     parser.end();
     console.log('Parsed product rows:', JSON.stringify(productRows, null, 2));
 
-    const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const productRow = productRows.find(
       (row) => row.linkText.toLowerCase().trim() === searchTerm.toLowerCase().trim()
     );
@@ -149,7 +165,6 @@ async function performCheckForConfig(
     }
   } catch (error) {
     console.error(`Error during check for date ${dateToCheck} and label ${searchTerm}:`, error);
-    const fullUrl = `${searchUrl}?partner_date=${dateToCheck}&start_date=${dateToCheck}`;
     const axiosError = error as { response?: { status?: number }; message: string };
     await saveCheckContent(
       axiosError.response?.status?.toString() || '0',
@@ -184,15 +199,7 @@ export async function checkSkiPassStation(signal?: AbortSignal): Promise<CheckRe
         console.log(
           `Running check for target_date: ${config.target_date}, target_label: ${config.target_label}`
         );
-        const result = await performCheckForConfig(
-          config as unknown as {
-            id: number;
-            target_date: string;
-            target_label: string;
-            is_mail_alert: boolean;
-          },
-          signal
-        );
+        const result = await performCheckForConfig(config, signal);
         return {
           configId: config.id,
           target_date: config.target_date,

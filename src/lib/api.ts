@@ -137,6 +137,26 @@ export async function updateCheckerConfiguration(configId: number, updatedConfig
   }
 }
 
+export async function createCheckerConfiguration(newConfig: Omit<CheckerConfiguration, 'id'>) {
+  try {
+    const response = await api.post('/api/create-checker-configuration', newConfig);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating checker configuration:', error);
+    throw error;
+  }
+}
+
+export async function deleteCheckerConfiguration(configId: number) {
+  try {
+    const response = await api.post('/api/delete-checker-configuration', { id: configId });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting checker configuration:', error);
+    throw error;
+  }
+}
+
 export async function clearCache() {
   try {
     const response = await api.post('/api/clear-cache');

@@ -23,7 +23,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 
 - **Scheduled Checks**: Automated ski resort queries running daily at 07:00 UTC (via Cloudflare Workers Cron Triggers or Vercel Crons)
 - **Public Read-Only Dashboard & Protected Admin APIs**: The public dashboard can read check history, database usage, and masked read-only configurations without signing in, while all mutating endpoints (`/api/update-checker-configuration`, `/api/delete-check-content`, `/api/force-check`, `/api/clear-cache`) require an HMAC-signed HttpOnly admin session cookie enforced at the Cloudflare Worker entrypoint (fail closed)
-- **Customizable Search Parameters**: Configurable resort, target dates, and search terms stored in Cloudflare D1
+- **Customizable Search Parameters & Multi-Site URLs**: Configurable target site URLs, dates, and search labels stored in Cloudflare D1 (with fallback to `BASE_SKI_RESORT_URL_SHOP`)
 - **Manual Checks on Demand**: Trigger crawler runs directly from the web interface
 - **Email Alerts**: Mailjet notifications when an early bird pass becomes available
 - **Web Dashboard**: Responsive user interface to view, sort, filter, and inspect check history
@@ -143,7 +143,9 @@ All backend routes follow Next.js App Router conventions in `src/app/api/.../rou
 | `POST`| `/api/delete-check-content` | Admin (protected) | Delete a check entry by ID (`{ "check_id": <id> }`) | Dynamic |
 | `POST`| `/api/force-check` | Admin (protected) | Manually run crawler checks across active configurations | Dynamic |
 | `GET` | `/api/get-checker-configuration?isActiveOnly=true` | Public (GET only; masked PII unless admin) | List active or all checker configurations | Private cache (60s) / `no-store` (admin) |
+| `POST`| `/api/create-checker-configuration` | Admin (protected) | Create a new checker configuration with site URL, target date, and alert settings | Dynamic |
 | `POST`| `/api/update-checker-configuration` | Admin (protected) | Update an existing checker configuration | Dynamic |
+| `POST`| `/api/delete-checker-configuration` | Admin (protected) | Delete a checker configuration by ID (`{ "id": <id> }`) | Dynamic |
 | `POST`| `/api/clear-cache` | Admin (protected) | Invalidate cached results | Dynamic |
 | `GET` | `/api/get-db-usage` | Public (GET only) | Fetch Cloudflare D1 database size and stats | Private cache (5 min) |
 | `GET` | `/api/scheduler` | Cron (`CRON_SECRET`) | Scheduled check endpoint (invoked by cron triggers, guarded by `CRON_SECRET`) | Dynamic (guarded) |
@@ -265,6 +267,9 @@ npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migration
 
 # Execute baseline configurations seed on remote D1
 npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migrations/0002_seed_configurations.sql --yes
+
+# Execute per-configuration target_url column migration on remote D1
+npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --file=./migrations/0003_add_target_url.sql --yes
 
 # Query remote D1 tables
 npx wrangler d1 execute skipass-earlybird-checker-d1 --remote --command="SELECT name FROM sqlite_master WHERE type='table';" --yes

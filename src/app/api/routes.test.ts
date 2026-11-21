@@ -9,6 +9,8 @@ import { POST as clearCacheRoute } from './clear-cache/route.ts';
 import { GET as schedulerRoute } from './scheduler/route.ts';
 import { POST as deleteCheckContentRoute } from './delete-check-content/route.ts';
 import { POST as updateCheckerConfigRoute } from './update-checker-configuration/route.ts';
+import { POST as createCheckerConfigRoute } from './create-checker-configuration/route.ts';
+import { POST as deleteCheckerConfigRoute } from './delete-checker-configuration/route.ts';
 import { POST as forceCheckRoute } from './force-check/route.ts';
 
 describe('API Route Handlers and Edge Caching', () => {
@@ -75,11 +77,12 @@ describe('API Route Handlers and Edge Caching', () => {
   });
 
   it('POST /api/update-checker-configuration should reject invalid customer fields', async () => {
-    const cases: Array<Record<string, unknown>, string> = [
+    const cases: Array<[Record<string, unknown>, string]> = [
       [{ id: 1, mail_alert_address: 'not-an-email' }, 'Invalid mail_alert_address: valid email address expected'],
       [{ id: 1, mail_alert_address: 'evil@example.com<script>' }, 'Invalid mail_alert_address: valid email address expected'],
       [{ id: 1, targetDate: '20/12/2026' }, 'Invalid targetDate: YYYY-MM-DD expected'],
       [{ id: 1, targetLabel: '' }, 'Invalid targetLabel: non-empty text of 100 characters max expected'],
+      [{ id: 1, targetUrl: 'javascript:alert(1)' }, 'Invalid targetUrl: valid http or https URL expected'],
       [{ id: 1, mail_alert_contact: '<img src=x onerror=alert(1)>' }, 'Invalid mail_alert_contact: non-empty text of 100 characters max expected'],
       [{ id: 1, is_active: 'yes' }, 'Invalid is_active: boolean expected'],
     ];
@@ -94,6 +97,46 @@ describe('API Route Handlers and Edge Caching', () => {
       const body = await res.json();
       assert.strictEqual(body.error, expectedError);
     }
+  });
+
+  it('POST /api/create-checker-configuration and /api/delete-checker-configuration should create, validate, and delete configs', async () => {
+    const badReq = new NextRequest('http://localhost:3000/api/create-checker-configuration', {
+      method: 'POST',
+      body: JSON.stringify({
+        targetDate: '2026-12-20',
+        targetLabel: 'New Resort',
+        targetUrl: 'ftp://invalid-scheme.example.com',
+      }),
+    });
+    const badRes = await createCheckerConfigRoute(badReq);
+    assert.strictEqual(badRes.status, 400);
+
+    const createReq = new NextRequest('http://localhost:3000/api/create-checker-configuration', {
+      method: 'POST',
+      body: JSON.stringify({
+        is_active: true,
+        targetDate: '2026-12-22',
+        targetLabel: 'Chamonix EarlyBird',
+        targetUrl: 'https://shop.chamonix.example.com/passes',
+        is_mail_alert: false,
+        mail_alert_address: '',
+        mail_alert_contact: '',
+      }),
+    });
+    const createRes = await createCheckerConfigRoute(createReq);
+    assert.strictEqual(createRes.status, 201);
+    const createdBody = await createRes.json();
+    assert.strictEqual(createdBody.success, true);
+    assert.strictEqual(createdBody.configuration.targetUrl, 'https://shop.chamonix.example.com/passes');
+
+    const deleteReq = new NextRequest('http://localhost:3000/api/delete-checker-configuration', {
+      method: 'POST',
+      body: JSON.stringify({ id: createdBody.configuration.id }),
+    });
+    const deleteRes = await deleteCheckerConfigRoute(deleteReq);
+    assert.strictEqual(deleteRes.status, 200);
+    const deletedBody = await deleteRes.json();
+    assert.strictEqual(deletedBody.success, true);
   });
 
   it('GET /api/get-db-usage should include private browser cache headers', async () => {
