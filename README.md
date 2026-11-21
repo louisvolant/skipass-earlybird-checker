@@ -35,7 +35,7 @@ The app is a single Next.js project. The checker crawler logic, Cloudflare D1 pe
 - **Next.js App Router Error Boundaries**: Custom `error.tsx` and `global-error.tsx` fallback boundaries providing graceful error recovery UI and preventing rendering exceptions from bubbling to the server runtime
 - **Client Disconnect & Abort Signal Handling**: Early termination and cancellation via `request.signal` (returning HTTP 499) across API routes and resort crawler requests to abort redundant worker CPU processing when clients close connections
 - **Optimized Edge Performance & HTTP Caching**: Native Cloudflare D1 SQL queries, bounded limits, and sanitized HTML payload capping combined with private `Cache-Control` response headers across API routes to minimize V8 isolate cold starts, CPU compute time, and serialization overhead
-- **Footer Navigation & Portfolio Links**: Quick navigation links to ecosystem web apps and tools (such as Whois at `whois.louisvolant.com`, Currency Converter at `currency-converter.louisvolant.com`, OpenSkipass, etc.)
+- **Footer Navigation & Portfolio Links**: Compact footer with links to the author's Personal Page (`https://www.louisvolant.com`) and Portfolio (`https://www.louisvolant.com/portfolio`) alongside theme switching
 
 ## Tech Stack
 

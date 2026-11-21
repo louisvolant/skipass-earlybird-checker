@@ -3,31 +3,25 @@ import assert from 'node:assert/strict';
 import { externalLinks, internalLinks } from './links.ts';
 
 describe('links configuration', () => {
-  it('should export valid internal links', () => {
-    assert.ok(internalLinks.length > 0);
+  it('should export valid internal links including Home and Admin', () => {
+    assert.ok(internalLinks.length >= 2);
     for (const link of internalLinks) {
       assert.ok(link.label);
       assert.ok(link.href.startsWith('/'));
     }
+    assert.ok(internalLinks.some((link) => link.href === '/'));
+    assert.ok(internalLinks.some((link) => link.href === '/admin'));
   });
 
-  it('should export valid external links', () => {
-    assert.ok(externalLinks.length > 0);
-    for (const link of externalLinks) {
-      assert.ok(link.label);
-      assert.ok(link.href.startsWith('http'));
-    }
-  });
-
-  it('should point Whois to whois.louisvolant.com', () => {
-    const whoisLink = externalLinks.find((link) => link.label === 'Whois');
-    assert.ok(whoisLink);
-    assert.strictEqual(whoisLink.href, 'https://whois.louisvolant.com');
-  });
-
-  it('should point Currency Converter to currency-converter.louisvolant.com', () => {
-    const currencyLink = externalLinks.find((link) => link.label === 'Currency Converter');
-    assert.ok(currencyLink);
-    assert.strictEqual(currencyLink.href, 'https://currency-converter.louisvolant.com');
+  it('should export Personal Page and Portfolio external links', () => {
+    assert.strictEqual(externalLinks.length, 2);
+    assert.deepStrictEqual(externalLinks[0], {
+      label: 'Personal Page',
+      href: 'https://www.louisvolant.com',
+    });
+    assert.deepStrictEqual(externalLinks[1], {
+      label: 'Portfolio',
+      href: 'https://www.louisvolant.com/portfolio',
+    });
   });
 });
